@@ -1,18 +1,33 @@
-import { supabase } from "../../shared/supabase/client";
+import { isSupabaseConfigured, supabase } from "../../shared/supabase/client";
 
 export function AuthPanel({ session }) {
   async function signInAsGuest() {
+    if (!supabase) {
+      return;
+    }
+
     await supabase.auth.signInAnonymously();
   }
 
   async function signOut() {
+    if (!supabase) {
+      return;
+    }
+
     await supabase.auth.signOut();
   }
 
   return (
     <div className="card auth-card">
       <h2>Account</h2>
-      {session ? (
+      {!isSupabaseConfigured ? (
+        <>
+          <p>Demo mode is active. Add Supabase keys in `.env` to enable authentication.</p>
+          <button className="secondary-button" disabled type="button">
+            Auth unavailable
+          </button>
+        </>
+      ) : session ? (
         <>
           <p>Signed in. Orders will be linked to your Supabase user session.</p>
           <button className="secondary-button" onClick={signOut}>

@@ -5,7 +5,7 @@ import { OrderHistory } from "../features/orders/OrderHistory";
 import { CheckoutPanel } from "../features/checkout/CheckoutPanel";
 import { AuthPanel } from "../features/auth/AuthPanel";
 import { getCatalog, getOrders, createOrder, createCheckoutSession } from "../shared/api/shopApi";
-import { supabase } from "../shared/supabase/client";
+import { isSupabaseConfigured, supabase } from "../shared/supabase/client";
 
 const initialFilters = {
   category: "all",
@@ -29,9 +29,11 @@ export default function App() {
     async function bootstrap() {
       setIsLoading(true);
 
-      const {
-        data: { session: activeSession }
-      } = await supabase.auth.getSession();
+      const activeSession = isSupabaseConfigured
+        ? (
+            await supabase.auth.getSession()
+          ).data.session
+        : null;
 
       if (isMounted) {
         setSession(activeSession);
@@ -56,6 +58,16 @@ export default function App() {
       }
     });
 
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return undefined;
+    }
+
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
@@ -65,7 +77,6 @@ export default function App() {
     });
 
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

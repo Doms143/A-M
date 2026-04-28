@@ -6,10 +6,11 @@ from flask import Flask, request
 
 from api._lib.auth import optional_user
 from api._lib.response import json_response
-from api._lib.supabase_client import get_supabase_client
+from api._lib.supabase_client import get_supabase_client, is_supabase_configured
 from api.data_seed import CATALOG
 
 app = Flask(__name__)
+DEMO_ORDERS = []
 
 
 @app.route("/api/catalog", methods=["GET", "OPTIONS"])
@@ -58,7 +59,10 @@ def list_orders():
     user = optional_user()
 
     if not user:
-        return json_response({"orders": []})
+        return json_response({"orders": DEMO_ORDERS})
+
+    if not is_supabase_configured(use_service_role=True):
+        return json_response({"orders": DEMO_ORDERS})
 
     try:
         supabase = get_supabase_client(use_service_role=True)
@@ -119,6 +123,10 @@ def create_order():
         "items": normalized_items,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+
+    if not is_supabase_configured(use_service_role=True):
+        DEMO_ORDERS.insert(0, order)
+        return json_response({"order": order}, 201)
 
     try:
         supabase = get_supabase_client(use_service_role=True)
