@@ -18,6 +18,18 @@ export function AdminDashboard({
 
   return (
     <div className="page-shell">
+      <nav className="navbar-header">
+        <span className="navbar-brand">A&M Sari-Sari Store</span>
+        <div className="navbar-actions">
+          <button className="secondary-button" onClick={onViewStore} type="button">
+            Storefront
+          </button>
+          <button className="primary-button" onClick={onSignOut} type="button">
+            Sign out
+          </button>
+        </div>
+      </nav>
+
       <header className="hero hero-compact admin-hero">
         <div className="hero-copy">
           <span className="eyebrow">Admin dashboard</span>
@@ -36,14 +48,6 @@ export function AdminDashboard({
               <span>Orders tracked</span>
             </div>
           </div>
-        </div>
-        <div className="hero-actions">
-          <button className="secondary-button" onClick={onViewStore} type="button">
-            Storefront
-          </button>
-          <button className="primary-button" onClick={onSignOut} type="button">
-            Sign out
-          </button>
         </div>
       </header>
 

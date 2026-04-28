@@ -12,17 +12,17 @@ export function AdminLoginPanel({ isSigningIn, onSubmit }) {
   }
 
   return (
-    <section className="card admin-login-card">
+    <section className="card login-card">
       <div className="section-header">
         <div>
-          <h2>Admin sign in</h2>
-          <p>Use your Supabase email and password to access product controls and recent orders.</p>
+          <h2>Sign In</h2>
+          <p>Enter your credentials</p>
         </div>
       </div>
 
       <form className="checkout-form" onSubmit={handleSubmit}>
         <label className="field-block">
-          <span className="field-label">Admin email</span>
+          <span className="field-label">Email address</span>
           <input
             autoComplete="email"
             className="text-input"
@@ -50,7 +50,7 @@ export function AdminLoginPanel({ isSigningIn, onSubmit }) {
           />
         </label>
         <button className="primary-button" disabled={isSigningIn} type="submit">
-          {isSigningIn ? "Signing in..." : "Sign in to admin"}
+          {isSigningIn ? "Signing in..." : "Sign in"}
         </button>
       </form>
     </section>

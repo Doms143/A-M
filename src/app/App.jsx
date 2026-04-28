@@ -103,13 +103,6 @@ export default function App() {
     } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
       setIsAdminReady(false);
-      if (nextSession && getRoute() === "admin") {
-        try {
-          await refreshAdminData(nextSession.access_token);
-        } catch (requestError) {
-          setError(requestError.message || "Unable to load admin data.");
-        }
-      }
     });
 
     return () => {
@@ -121,14 +114,6 @@ export default function App() {
     window.location.hash = nextRoute === "shop" ? "/" : `/${nextRoute}`;
     setRoute(nextRoute);
   }
-
-  useEffect(() => {
-    if (route !== "admin" || !session?.access_token) {
-      return;
-    }
-
-    refreshAdminData(session.access_token).catch(() => {});
-  }, [route, session]);
 
   useEffect(() => {
     if (route === "admin" && !session) {

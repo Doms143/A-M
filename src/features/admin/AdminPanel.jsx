@@ -41,6 +41,24 @@ export function AdminPanel({
 }) {
   const [formState, setFormState] = useState(initialProductForm);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [productsPage, setProductsPage] = useState(1);
+  
+  const ordersPerPage = 5;
+  const productsPerPage = 6;
+  
+  const paginatedOrders = useMemo(() => {
+    const start = (ordersPage - 1) * ordersPerPage;
+    return orders.slice(start, start + ordersPerPage);
+  }, [orders, ordersPage]);
+  
+  const paginatedProducts = useMemo(() => {
+    const start = (productsPage - 1) * productsPerPage;
+    return products.slice(start, start + productsPerPage);
+  }, [products, productsPage]);
+  
+  const ordersPageCount = Math.ceil(orders.length / ordersPerPage);
+  const productsPageCount = Math.ceil(products.length / productsPerPage);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.id === selectedOrderId) ?? null,
@@ -122,7 +140,7 @@ export function AdminPanel({
           </form>
 
           <div className="product-grid admin-product-grid">
-            {products.map((product) => (
+            {paginatedProducts.map((product) => (
               <article className="product-card" key={product.id}>
                 <div className="product-card-top">
                   <div className="product-badge">{product.category}</div>
@@ -139,6 +157,28 @@ export function AdminPanel({
               </article>
             ))}
           </div>
+          
+          {productsPageCount > 1 && (
+            <div className="pagination-controls">
+              <button
+                className="secondary-button"
+                disabled={productsPage === 1}
+                onClick={() => setProductsPage(productsPage - 1)}
+                type="button"
+              >
+                Previous
+              </button>
+              <span className="pagination-info">Page {productsPage} of {productsPageCount}</span>
+              <button
+                className="secondary-button"
+                disabled={productsPage === productsPageCount}
+                onClick={() => setProductsPage(productsPage + 1)}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="card admin-section-card">
@@ -159,7 +199,7 @@ export function AdminPanel({
                 <p>New customer orders will appear here as soon as they are submitted.</p>
               </div>
             ) : null}
-            {orders.map((order) => (
+            {paginatedOrders.map((order) => (
               <button
                 className="order-card order-card-button"
                 key={order.id}
@@ -178,6 +218,28 @@ export function AdminPanel({
               </button>
             ))}
           </div>
+          
+          {ordersPageCount > 1 && (
+            <div className="pagination-controls">
+              <button
+                className="secondary-button"
+                disabled={ordersPage === 1}
+                onClick={() => setOrdersPage(ordersPage - 1)}
+                type="button"
+              >
+                Previous
+              </button>
+              <span className="pagination-info">Page {ordersPage} of {ordersPageCount}</span>
+              <button
+                className="secondary-button"
+                disabled={ordersPage === ordersPageCount}
+                onClick={() => setOrdersPage(ordersPage + 1)}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </section>
       </div>
 

@@ -81,12 +81,19 @@ textarea:focus-visible {
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(75, 48, 27, 0.08);
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+}
+
+.navbar-header:hover {
+  box-shadow: 0 8px 24px rgba(75, 48, 27, 0.12);
 }
 
 .navbar-brand {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
+  letter-spacing: -0.3px;
 }
 
 .navbar-actions {
@@ -110,10 +117,39 @@ textarea:focus-visible {
   padding: 24px;
   z-index: 50;
   backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
 }
 
 .modal-shell {
   width: min(560px, 100%);
+  animation: slideUp 0.3s ease;
+  background: var(--surface-strong);
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 32px 80px rgba(75, 48, 27, 0.2);
+  border: 1px solid var(--line);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .order-modal {
@@ -123,6 +159,16 @@ textarea:focus-visible {
 .modal-close {
   margin: 0 0 12px auto;
   display: block;
+}
+
+.modal-shell:has(.login-card) {
+  padding: 20px;
+}
+
+.modal-shell:has(.login-card) .modal-close {
+  margin: 0 0 16px auto;
+  font-size: 0.9rem;
+  padding: 8px 12px;
 }
 
 .hero {
@@ -242,6 +288,13 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 20px;
+  align-items: start;
+}
+
+.admin-section-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .admin-dashboard-summary {
@@ -267,6 +320,12 @@ textarea:focus-visible {
   box-shadow: var(--shadow);
   padding: 24px;
   backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(15, 118, 110, 0.2);
+  box-shadow: 0 28px 80px rgba(75, 48, 27, 0.16);
 }
 
 .catalog-card,
@@ -280,6 +339,38 @@ textarea:focus-visible {
 
 .admin-login-card {
   max-width: 520px;
+}
+
+.login-card {
+  max-width: 520px;
+  background: linear-gradient(135deg, rgba(255, 250, 245, 0.98), rgba(236, 253, 245, 0.96));
+  padding: 20px;
+}
+
+.login-card .section-header {
+  text-align: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.login-card .section-header h2,
+.login-card .section-header p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.login-card .section-header h2 {
+  margin-bottom: 4px;
+  font-size: 1.5rem;
+}
+
+.login-card .section-header p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.login-card .checkout-form {
+  gap: 12px;
 }
 
 .stat-card {
@@ -309,7 +400,18 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 16px;
   align-items: start;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.section-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+}
+
+.section-header p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .section-header.compact {
@@ -332,6 +434,28 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+.stack-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.pagination-info {
+  font-size: 0.9rem;
+  color: var(--muted);
+  min-width: 120px;
+  text-align: center;
+}
+
 .catalog-filter-bar {
   margin-bottom: 22px;
 }
@@ -347,6 +471,7 @@ textarea:focus-visible {
   padding: 10px 14px;
   color: var(--muted);
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .filter-chip-active,
@@ -354,6 +479,8 @@ textarea:focus-visible {
   background: var(--accent-soft);
   border-color: rgba(15, 118, 110, 0.24);
   color: var(--accent-strong);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.12);
 }
 
 .catalog-results {
@@ -369,6 +496,10 @@ textarea:focus-visible {
 
 .admin-product-grid {
   margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  min-height: 0;
 }
 
 .product-card,
@@ -378,6 +509,15 @@ textarea:focus-visible {
   border-radius: 20px;
   border: 1px solid rgba(110, 79, 55, 0.12);
   padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.product-card:hover,
+.order-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 118, 110, 0.2);
+  box-shadow: 0 8px 24px rgba(75, 48, 27, 0.1);
+  transform: translateY(-2px);
 }
 
 .order-card-button {
@@ -461,10 +601,21 @@ textarea:focus-visible {
 .select-input,
 .text-area {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   border-radius: 16px;
   padding: 13px 14px;
   background: #fffdf9;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.text-input:focus,
+.select-input:focus,
+.text-area:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
 }
 
 .text-area {
@@ -535,6 +686,8 @@ textarea:focus-visible {
   cursor: pointer;
   border-radius: 14px;
   padding: 11px 15px;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .primary-button {
@@ -543,19 +696,32 @@ textarea:focus-visible {
   box-shadow: 0 12px 28px rgba(15, 118, 110, 0.18);
 }
 
-.primary-button:hover {
+.primary-button:hover:not(:disabled) {
   background: var(--accent-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(15, 118, 110, 0.24);
+}
+
+.primary-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .secondary-button,
 .quantity-control button {
   background: rgba(45, 31, 22, 0.08);
   color: var(--text);
+  border: 1px solid rgba(45, 31, 22, 0.12);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: rgba(45, 31, 22, 0.14);
+  border-color: rgba(45, 31, 22, 0.2);
+  transform: translateY(-2px);
 }
 
 .primary-button:disabled,
 .secondary-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -642,6 +808,16 @@ textarea:focus-visible {
   .card {
     padding: 22px;
   }
+  
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .pagination-controls button {
+    flex: 1;
+    min-width: 90px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -675,5 +851,17 @@ textarea:focus-visible {
 
   .order-detail-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .pagination-controls {
+    flex-direction: column;
+  }
+  
+  .pagination-controls button {
+    width: 100%;
+  }
+  
+  .pagination-info {
+    width: 100%;
   }
 }
