@@ -1,0 +1,37 @@
+from flask import Blueprint, request
+
+from api._lib.response import json_response
+
+from .service import build_order, persist_order
+from .store import list_orders
+
+orders_bp = Blueprint("orders", __name__)
+
+
+@orders_bp.route("/api/orders", methods=["GET", "POST", "OPTIONS"])
+def orders():
+    if request.method == "OPTIONS":
+        return json_response({})
+
+    if request.method == "GET":
+        try:
+            return json_response({"orders": list_orders()})
+        except Exception as error:
+            return json_response({"error": str(error)}, 500)
+
+    payload = request.get_json(silent=True) or {}
+    customer_details = (
+        payload.get("customerDetails")
+        or payload.get("guestDetails")
+        or {}
+    )
+    items = payload.get("items", [])
+
+    try:
+        order = build_order(customer_details, items)
+        persisted_order = persist_order(order)
+        return json_response({"order": persisted_order}, 201)
+    except ValueError as error:
+        return json_response({"error": str(error)}, 400)
+    except Exception as error:
+        return json_response({"error": str(error)}, 500)

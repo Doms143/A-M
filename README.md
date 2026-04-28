@@ -1,25 +1,30 @@
-# Goods Ordering Website
+# A&M Sari-Sari Store
 
-React + Vercel Python starter template for a resort goods ordering storefront.
+React + Vercel Python starter template for a sari-sari store ordering storefront.
 
 ## Project profile
 
-- Project Name: Goods Ordering Website
-- Main Features: Ordering System
-- Target Audience: Resort ordering goods, age 20-40
+- Project Name: A&M Sari-Sari Store
+- Main Features: Ordering System, Admin Product Management
+- Target Audience: Neighborhood customers ordering daily essentials
 - Technologies: React, JavaScript, Python, Supabase, Vercel
 
 ## Architecture
 
 The template is split by feature to keep the storefront and API modular:
 
-- `src/features/auth`: Supabase session handling
+- `src/features/admin`: admin product form and recent database orders
 - `src/features/catalog`: product listing and filtering
 - `src/features/cart`: cart state and quantity controls
 - `src/features/checkout`: checkout form and order submission
-- `src/features/orders`: order history
-- `api/`: Vercel-ready Python functions and supporting modules
-- `supabase/schema.sql`: starter table and policies
+- `api/features/admin`: admin endpoints for products and recent orders
+- `api/features/catalog`: catalog routes for the backend slice
+- `api/features/orders`: order routes, persistence, and order-building logic
+- `api/features/checkout`: checkout endpoint slice
+- `api/_lib`: shared backend infrastructure only
+- `api/index.py`: thin app composition layer that registers slice blueprints
+- `supabase/schema.sql`: products, orders, and policies
+- `supabase/admin_queries.sql`: quick admin queries for admin accounts, products, and recent orders
 
 ## Local setup
 
@@ -36,24 +41,39 @@ pip install -r requirements.txt
 ```
 
 3. Copy `.env.example` to `.env` and fill in real Supabase keys.
+Admin access depends on `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and rows in `public.admin_accounts`.
 
 4. Apply `supabase/schema.sql` in your Supabase SQL editor.
+This creates the `products` and `orders` tables and seeds the starter catalog.
 
-5. Run the frontend:
+5. Optional: use `supabase/admin_queries.sql` for quick selects and example product upserts.
+
+6. Run the frontend:
 
 ```bash
 npm run dev
 ```
 
-6. Run the backend locally with Vercel:
+7. Run the backend locally:
 
 ```bash
-vercel dev
+py -m flask --app api.index:app --debug run --host 127.0.0.1 --port 5000
+```
+
+8. For a single Vercel-like local runtime, use:
+
+```bash
+npx vercel dev
 ```
 
 ## Deployment notes
 
 - Vercel will build the React app from the root `package.json`.
 - Python endpoints are exposed from `api/index.py`.
+- The storefront is the root route `#/`, and the admin view is `#/admin`.
+- The storefront button is for admin access. Admin sign-in uses Supabase email/password.
+- Admin API routes are protected by the `public.admin_accounts` table.
+- Recent orders are shown only in the admin view, not on the storefront.
+- Order tokens are validated against Supabase Auth on the backend instead of being decoded locally.
 - Replace the checkout stub in `/api/checkout` with your payment provider flow.
 - Avoid exposing the Supabase service role key in the browser. It is used only by the Python API.

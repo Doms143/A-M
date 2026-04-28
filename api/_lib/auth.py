@@ -1,9 +1,8 @@
-import os
 from functools import wraps
 
-import jwt
 from flask import request
 
+from .supabase_client import get_supabase_client, is_supabase_configured
 from .response import json_response
 
 
@@ -13,15 +12,21 @@ def optional_user():
         return None
 
     token = auth_header.split(" ", 1)[1]
-    secret = os.environ.get("SUPABASE_JWT_SECRET")
-
-    if not secret:
+    if not is_supabase_configured():
         return None
 
     try:
-        payload = jwt.decode(token, secret, algorithms=["HS256"], options={"verify_aud": False})
-        return payload
-    except jwt.PyJWTError:
+        response = get_supabase_client().auth.get_user(token)
+        user = getattr(response, "user", None)
+        if not user:
+            return None
+
+        return {
+            "sub": user.id,
+            "email": getattr(user, "email", None),
+            "is_anonymous": getattr(user, "is_anonymous", False),
+        }
+    except Exception:
         return None
 
 
@@ -31,6 +36,44 @@ def require_auth(handler):
         user = optional_user()
         if not user:
             return json_response({"error": "Unauthorized"}, 401)
+        return handler(user, *args, **kwargs)
+
+    return wrapper
+
+
+def is_admin_user(user):
+    user_email = (user or {}).get("email") or ""
+    if not user_email:
+        return False
+
+    if not is_supabase_configured(use_service_role=True):
+        return False
+
+    try:
+        supabase = get_supabase_client(use_service_role=True)
+        result = (
+            supabase.table("admin_accounts")
+            .select("email")
+            .eq("email", user_email.lower())
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        return bool(result.data)
+    except Exception:
+        return False
+
+
+def require_admin(handler):
+    @wraps(handler)
+    def wrapper(*args, **kwargs):
+        if request.method == "OPTIONS":
+            return json_response({})
+        user = optional_user()
+        if not user:
+            return json_response({"error": "Unauthorized"}, 401)
+        if not is_admin_user(user):
+            return json_response({"error": "Forbidden"}, 403)
         return handler(user, *args, **kwargs)
 
     return wrapper

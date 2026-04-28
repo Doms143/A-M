@@ -1,12 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 export async function http(path, options = {}) {
+  const { headers, ...restOptions } = options;
   const response = await fetch(`${API_BASE}${path}`, {
+    ...restOptions,
     headers: {
       "Content-Type": "application/json",
-      ...options.headers
-    },
-    ...options
+      ...headers
+    }
   });
 
   const body = await response.json();

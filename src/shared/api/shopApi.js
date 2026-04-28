@@ -37,3 +37,57 @@ export function createCheckoutSession(order, accessToken) {
     body: JSON.stringify({ orderId: order.id, total: order.total })
   });
 }
+
+export function getAdminOrders(accessToken) {
+  return http("/admin/orders", {
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {}
+  });
+}
+
+export function updateAdminOrder(orderId, payload, accessToken) {
+  return http(`/admin/orders/${orderId}`, {
+    method: "PATCH",
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {},
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getAdminAccount(accessToken) {
+  return http("/admin/account", {
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {}
+  });
+}
+
+export function getAdminProducts(accessToken) {
+  return http("/admin/products", {
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {}
+  });
+}
+
+export function createAdminProduct(payload, accessToken) {
+  return http("/admin/products", {
+    method: "POST",
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {},
+    body: JSON.stringify(payload)
+  });
+}
