@@ -91,3 +91,14 @@ export function createAdminProduct(payload, accessToken) {
     body: JSON.stringify(payload)
   });
 }
+
+export function deleteAdminProduct(productId, accessToken) {
+  return http(`/admin/products/${productId}`, {
+    method: "DELETE",
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`
+        }
+      : {}
+  });
+}

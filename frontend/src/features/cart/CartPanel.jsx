@@ -1,3 +1,9 @@
+const pesoSign = "\u20b1";
+
+function getPricingUnitLabel(pricingUnit) {
+  return pricingUnit === "kilogram" ? "per kg" : "each";
+}
+
 export function CartPanel({ cart, summary, onUpdateQuantity }) {
   const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -23,14 +29,14 @@ export function CartPanel({ cart, summary, onUpdateQuantity }) {
           <div className="cart-row cart-item-card" key={item.id}>
             <div className="cart-copy">
               <strong>{item.name}</strong>
-              <p>${item.price.toFixed(2)} each</p>
+              <p>{pesoSign}{item.price.toFixed(2)} {getPricingUnitLabel(item.pricing_unit)}</p>
             </div>
             <div className="quantity-control">
               <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">-</button>
               <span>{item.quantity}</span>
               <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} type="button">+</button>
             </div>
-            <strong className="cart-line-total">${(item.price * item.quantity).toFixed(2)}</strong>
+            <strong className="cart-line-total">{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>
           </div>
         ))}
       </div>
@@ -38,11 +44,11 @@ export function CartPanel({ cart, summary, onUpdateQuantity }) {
       <div className="summary-box cart-summary-box">
         <div>
           <span>Subtotal</span>
-          <strong>${summary.subtotal.toFixed(2)}</strong>
+          <strong>{pesoSign}{summary.subtotal.toFixed(2)}</strong>
         </div>
         <div>
           <span>Total</span>
-          <strong>${summary.total.toFixed(2)}</strong>
+          <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
         </div>
       </div>
     </section>

@@ -6,12 +6,18 @@ create table if not exists public.products (
   description text not null,
   category text not null,
   price numeric(10, 2) not null,
+  pricing_unit text not null default 'piece',
   is_active boolean not null default true,
   created_at timestamptz not null default timezone('utc', now())
 );
 
+alter table public.products add column if not exists pricing_unit text not null default 'piece';
 alter table public.products add column if not exists is_active boolean not null default true;
 alter table public.products add column if not exists created_at timestamptz not null default timezone('utc', now());
+alter table public.products drop constraint if exists products_pricing_unit_check;
+alter table public.products
+add constraint products_pricing_unit_check
+check (pricing_unit in ('piece', 'kilogram'));
 create index if not exists products_created_at_idx on public.products (created_at desc);
 create index if not exists products_active_idx on public.products (is_active);
 
@@ -27,18 +33,19 @@ alter table public.admin_accounts add column if not exists is_active boolean not
 alter table public.admin_accounts add column if not exists created_at timestamptz not null default timezone('utc', now());
 create index if not exists admin_accounts_active_idx on public.admin_accounts (is_active);
 
-insert into public.products (id, name, description, category, price, is_active)
+insert into public.products (id, name, description, category, price, pricing_unit, is_active)
 values
-  ('instant-noodles', 'Instant Noodles', 'Quick merienda staple for a sari-sari store shelf.', 'refreshments', 18.00, true),
-  ('3in1-coffee', '3-in-1 Coffee Pack', 'Convenient single-serve coffee sachets for daily use.', 'housekeeping', 12.00, true),
-  ('canned-sardines', 'Canned Sardines', 'Affordable pantry essential commonly stocked in sari-sari stores.', 'wellness', 28.00, true),
-  ('bottled-water', 'Bottled Water', 'Everyday drinking water for quick neighborhood purchases.', 'refreshments', 15.00, true)
+  ('instant-noodles', 'Instant Noodles', 'Quick merienda staple for a sari-sari store shelf.', 'refreshments', 18.00, 'piece', true),
+  ('3in1-coffee', '3-in-1 Coffee Pack', 'Convenient single-serve coffee sachets for daily use.', 'housekeeping', 12.00, 'piece', true),
+  ('canned-sardines', 'Canned Sardines', 'Affordable pantry essential commonly stocked in sari-sari stores.', 'wellness', 28.00, 'piece', true),
+  ('bottled-water', 'Bottled Water', 'Everyday drinking water for quick neighborhood purchases.', 'refreshments', 15.00, 'piece', true)
 on conflict (id) do update
 set
   name = excluded.name,
   description = excluded.description,
   category = excluded.category,
   price = excluded.price,
+  pricing_unit = excluded.pricing_unit,
   is_active = excluded.is_active;
 
 create table if not exists public.orders (

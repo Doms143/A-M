@@ -5,6 +5,7 @@ CATALOG = [
         "description": "Quick merienda staple for a sari-sari store shelf.",
         "category": "refreshments",
         "price": 18.0,
+        "pricing_unit": "piece",
     },
     {
         "id": "3in1-coffee",
@@ -12,6 +13,7 @@ CATALOG = [
         "description": "Convenient single-serve coffee sachets for daily use.",
         "category": "housekeeping",
         "price": 12.0,
+        "pricing_unit": "piece",
     },
     {
         "id": "canned-sardines",
@@ -19,6 +21,7 @@ CATALOG = [
         "description": "Affordable pantry essential commonly stocked in sari-sari stores.",
         "category": "wellness",
         "price": 28.0,
+        "pricing_unit": "piece",
     },
     {
         "id": "bottled-water",
@@ -26,5 +29,6 @@ CATALOG = [
         "description": "Everyday drinking water for quick neighborhood purchases.",
         "category": "refreshments",
         "price": 15.0,
+        "pricing_unit": "piece",
     },
 ]

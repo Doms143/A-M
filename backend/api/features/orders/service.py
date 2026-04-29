@@ -62,7 +62,7 @@ def _get_catalog():
         supabase = get_supabase_client(use_service_role=True)
         result = (
             supabase.table("products")
-            .select("id, name, price, is_active")
+            .select("id, name, price, pricing_unit, is_active")
             .eq("is_active", True)
             .execute()
         )
@@ -96,6 +96,7 @@ def build_order(customer_details, items):
                 "name": product["name"],
                 "quantity": quantity,
                 "unit_price": product["price"],
+                "pricing_unit": product.get("pricing_unit", "piece"),
                 "line_total": line_total,
             }
         )

@@ -2,10 +2,12 @@ import { AdminPanel } from "./AdminPanel";
 
 export function AdminDashboard({
   adminAccount,
+  isDeletingProduct,
   isSavingProduct,
   onCreateProduct,
   onAcceptOrder,
-  onRefreshOrders,
+  onCancelOrder,
+  onDeleteProduct,
   onSignOut,
   onViewStore,
   isUpdatingOrder,
@@ -70,11 +72,13 @@ export function AdminDashboard({
       </section>
 
       <AdminPanel
+        isDeletingProduct={isDeletingProduct}
         isUpdatingOrder={isUpdatingOrder}
         isSavingProduct={isSavingProduct}
         onAcceptOrder={onAcceptOrder}
+        onCancelOrder={onCancelOrder}
         onCreateProduct={onCreateProduct}
-        onRefreshOrders={onRefreshOrders}
+        onDeleteProduct={onDeleteProduct}
         orders={orders}
         products={products}
       />

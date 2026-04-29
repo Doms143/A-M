@@ -20,9 +20,11 @@ def _require_supabase():
 
 
 def _validate_product(payload):
+    existing_id = _clean_text(payload.get("id"))
     name = _clean_text(payload.get("name"))
     category = _clean_text(payload.get("category")).lower()
     description = _clean_text(payload.get("description"))
+    pricing_unit = _clean_text(payload.get("pricingUnit") or payload.get("pricing_unit")).lower() or "piece"
     raw_price = payload.get("price")
 
     if not name:
@@ -31,6 +33,8 @@ def _validate_product(payload):
         raise ValueError("Category is required.")
     if not description:
         raise ValueError("Description is required.")
+    if pricing_unit not in {"piece", "kilogram"}:
+        raise ValueError("Pricing unit must be piece or kilogram.")
 
     try:
         price = round(float(raw_price), 2)
@@ -40,13 +44,14 @@ def _validate_product(payload):
     if price <= 0:
         raise ValueError("Price must be greater than zero.")
 
-    slug = "-".join(name.lower().split())
+    slug = existing_id or "-".join(name.lower().split())
     return {
         "id": slug,
         "name": name,
         "category": category,
         "description": description,
         "price": price,
+        "pricing_unit": pricing_unit,
         "is_active": True,
     }
 
@@ -151,5 +156,26 @@ def admin_products(_user):
         return json_response({"product": result.data[0]}, 201)
     except ValueError as error:
         return json_response({"error": str(error)}, 400)
+    except Exception as error:
+        return json_response({"error": str(error)}, 500)
+
+
+@admin_bp.route("/api/admin/products/<product_id>", methods=["DELETE", "OPTIONS"])
+@require_admin
+def delete_admin_product(_user, product_id):
+    if request.method == "OPTIONS":
+        return json_response({})
+
+    try:
+        supabase = _require_supabase()
+        result = (
+            supabase.table("products")
+            .delete()
+            .eq("id", product_id)
+            .execute()
+        )
+        if not result.data:
+            return json_response({"error": "Product not found."}, 404)
+        return json_response({"deletedProductId": product_id})
     except Exception as error:
         return json_response({"error": str(error)}, 500)

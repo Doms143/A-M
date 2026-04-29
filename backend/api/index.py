@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import Flask
 from dotenv import load_dotenv
 
@@ -6,7 +8,7 @@ from .features.catalog.routes import catalog_bp
 from .features.checkout.routes import checkout_bp
 from .features.orders.routes import orders_bp
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = Flask(__name__)
 app.register_blueprint(admin_bp)

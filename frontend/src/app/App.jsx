@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminLoginPanel } from "../features/admin/AdminLoginPanel";
 import { AdminDashboard } from "../features/admin/AdminDashboard";
 import { CatalogPanel } from "../features/catalog/CatalogPanel";
@@ -10,6 +10,7 @@ import {
   createCheckoutSession,
   getAdminAccount,
   createAdminProduct,
+  deleteAdminProduct,
   getAdminOrders,
   getAdminProducts,
   updateAdminOrder
@@ -20,6 +21,29 @@ const initialFilters = {
   category: "all",
   query: ""
 };
+
+const ADMIN_CACHE_KEY = "am-admin-dashboard-cache";
+
+function readAdminCache() {
+  try {
+    const rawValue = window.sessionStorage.getItem(ADMIN_CACHE_KEY);
+    return rawValue ? JSON.parse(rawValue) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeAdminCache(snapshot) {
+  try {
+    window.sessionStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(snapshot));
+  } catch {}
+}
+
+function clearAdminCache() {
+  try {
+    window.sessionStorage.removeItem(ADMIN_CACHE_KEY);
+  } catch {}
+}
 
 function getRoute() {
   const hash = window.location.hash.replace(/^#/, "");
@@ -33,23 +57,77 @@ function getRoute() {
 }
 
 export default function App() {
+  const cachedAdminState = readAdminCache();
   const [route, setRoute] = useState(getRoute);
   const [session, setSession] = useState(null);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [filters, setFilters] = useState(initialFilters);
-  const [adminProducts, setAdminProducts] = useState([]);
-  const [adminOrders, setAdminOrders] = useState([]);
-  const [adminAccount, setAdminAccount] = useState(null);
+  const [adminProducts, setAdminProducts] = useState(cachedAdminState?.products ?? []);
+  const [adminOrders, setAdminOrders] = useState(cachedAdminState?.orders ?? []);
+  const [adminAccount, setAdminAccount] = useState(cachedAdminState?.account ?? null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isAdminReady, setIsAdminReady] = useState(false);
+  const [isAdminReady, setIsAdminReady] = useState(Boolean(cachedAdminState));
   const [error, setError] = useState("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const adminRefreshTokenRef = useRef("");
+
+  function syncAdminCache(nextAccount, nextOrders, nextProducts) {
+    writeAdminCache({
+      account: nextAccount,
+      orders: nextOrders,
+      products: nextProducts
+    });
+  }
+
+  async function getAccessToken() {
+    if (session?.access_token) {
+      return session.access_token;
+    }
+
+    if (!supabase) {
+      return "";
+    }
+
+    const {
+      data: { session: nextSession }
+    } = await supabase.auth.getSession();
+
+    if (nextSession) {
+      setSession(nextSession);
+    }
+
+    return nextSession?.access_token ?? "";
+  }
+
+  async function fetchAdminAccount(accessToken) {
+    const accountResponse = await getAdminAccount(accessToken);
+    const nextAccount = accountResponse.account ?? null;
+    setAdminAccount(nextAccount);
+    syncAdminCache(nextAccount, adminOrders, adminProducts);
+    return nextAccount;
+  }
+
+  async function refreshAdminData(accessToken = session?.access_token, accountOverride = adminAccount) {
+    const [ordersResponse, productsResponse] = await Promise.all([
+      getAdminOrders(accessToken),
+      getAdminProducts(accessToken)
+    ]);
+    const nextOrders = ordersResponse.orders ?? [];
+    const nextProducts = productsResponse.products ?? [];
+
+    setAdminOrders(nextOrders);
+    setAdminProducts(nextProducts);
+    setIsAdminReady(true);
+    setError("");
+    syncAdminCache(accountOverride, nextOrders, nextProducts);
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -57,21 +135,29 @@ export default function App() {
     async function bootstrap() {
       setIsLoading(true);
 
-      const activeSession = isSupabaseConfigured
-        ? (
-            await supabase.auth.getSession()
-          ).data.session
-        : null;
+      const [activeSession, catalogResponse] = await Promise.all([
+        isSupabaseConfigured
+          ? supabase.auth.getSession().then(({ data }) => data.session)
+          : Promise.resolve(null),
+        getCatalog()
+      ]);
 
       if (isMounted) {
         setSession(activeSession);
+        setIsSessionChecked(true);
       }
 
-      const [{ products: catalog }] = await Promise.all([getCatalog()]);
-
       if (isMounted) {
-        setProducts(catalog);
+        setProducts(catalogResponse.products ?? []);
         setIsLoading(false);
+      }
+
+      if (activeSession?.access_token) {
+        fetchAdminAccount(activeSession.access_token).catch(() => {
+          if (isMounted) {
+            setAdminAccount(null);
+          }
+        });
       }
     }
 
@@ -103,27 +189,45 @@ export default function App() {
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setIsSessionChecked(true);
-      setIsAdminReady(false);
-      
-      if (nextSession?.access_token) {
-        try {
-          const accountResponse = await getAdminAccount(nextSession.access_token);
-          setAdminAccount(accountResponse.account ?? null);
-        } catch {
-          setAdminAccount(null);
-        }
-      } else {
+      adminRefreshTokenRef.current = "";
+
+      if (!nextSession?.access_token) {
         setAdminAccount(null);
+        setAdminOrders([]);
+        setAdminProducts([]);
+        setIsAdminReady(false);
+        clearAdminCache();
+        return;
       }
+
+      fetchAdminAccount(nextSession.access_token).catch(() => {
+        setAdminAccount(null);
+      });
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!session?.access_token || !adminAccount || route !== "admin") {
+      return;
+    }
+
+    const refreshToken = `${route}:${session.access_token}`;
+    if (adminRefreshTokenRef.current === refreshToken) {
+      return;
+    }
+
+    adminRefreshTokenRef.current = refreshToken;
+    refreshAdminData(session.access_token).catch(() => {
+      adminRefreshTokenRef.current = "";
+    });
+  }, [route, session, adminAccount]);
 
   function navigate(nextRoute) {
     window.location.hash = nextRoute === "shop" ? "/" : `/${nextRoute}`;
@@ -136,16 +240,9 @@ export default function App() {
     }
     
     if (route === "admin" && !session) {
-      setIsAdminLoginOpen(true);
       navigate("shop");
     }
   }, [route, session, isSessionChecked]);
-
-  useEffect(() => {
-    if (route === "admin" && session?.access_token && !isAdminReady && adminAccount) {
-      refreshAdminData(session.access_token).catch(() => {});
-    }
-  }, [route, session, isAdminReady, adminAccount]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -244,7 +341,10 @@ export default function App() {
         throw new Error("Admin session was not created.");
       }
 
-      await refreshAdminData(data.session.access_token);
+      const accountResponse = await getAdminAccount(data.session.access_token);
+      const nextAccount = accountResponse.account ?? null;
+      setAdminAccount(nextAccount);
+      await refreshAdminData(data.session.access_token, nextAccount);
       navigate("admin");
     } catch (requestError) {
       setError(requestError.message || "Admin sign-in failed.");
@@ -260,31 +360,19 @@ export default function App() {
 
     await supabase.auth.signOut();
     setAdminAccount(null);
+    setAdminOrders([]);
+    setAdminProducts([]);
     setIsAdminReady(false);
+    clearAdminCache();
     navigate("shop");
   }
 
   async function refreshAdminOrders() {
-    const response = await getAdminOrders(session?.access_token);
-    setAdminOrders(response.orders ?? []);
-  }
-
-  async function refreshAdminData(accessToken = session?.access_token) {
-    try {
-      const [ordersResponse, productsResponse] = await Promise.all([
-        getAdminOrders(accessToken),
-        getAdminProducts(accessToken)
-      ]);
-      const accountResponse = await getAdminAccount(accessToken);
-      setAdminOrders(ordersResponse.orders ?? []);
-      setAdminProducts(productsResponse.products ?? []);
-      setAdminAccount(accountResponse.account ?? null);
-      setIsAdminReady(true);
-      setError("");
-    } catch (requestError) {
-      setIsAdminReady(false);
-      throw requestError;
-    }
+    const accessToken = await getAccessToken();
+    const response = await getAdminOrders(accessToken);
+    const nextOrders = response.orders ?? [];
+    setAdminOrders(nextOrders);
+    syncAdminCache(adminAccount, nextOrders, adminProducts);
   }
 
   async function handleCreateProduct(payload) {
@@ -292,13 +380,16 @@ export default function App() {
     setError("");
 
     try {
-      await createAdminProduct(payload, session?.access_token);
+      const accessToken = await getAccessToken();
+      await createAdminProduct(payload, accessToken);
       const [catalogResponse, adminProductResponse] = await Promise.all([
         getCatalog(),
-        getAdminProducts(session?.access_token)
+        getAdminProducts(accessToken)
       ]);
       setProducts(catalogResponse.products ?? []);
-      setAdminProducts(adminProductResponse.products ?? []);
+      const nextProducts = adminProductResponse.products ?? [];
+      setAdminProducts(nextProducts);
+      syncAdminCache(adminAccount, adminOrders, nextProducts);
     } catch (requestError) {
       setError(requestError.message || "Unable to save product.");
     } finally {
@@ -306,21 +397,57 @@ export default function App() {
     }
   }
 
+  async function handleDeleteProduct(productId) {
+    setIsDeletingProduct(true);
+    setError("");
+
+    try {
+      const accessToken = await getAccessToken();
+      await deleteAdminProduct(productId, accessToken);
+      const [catalogResponse, adminProductResponse] = await Promise.all([
+        getCatalog(),
+        getAdminProducts(accessToken)
+      ]);
+      setProducts(catalogResponse.products ?? []);
+      const nextProducts = adminProductResponse.products ?? [];
+      setAdminProducts(nextProducts);
+      syncAdminCache(adminAccount, adminOrders, nextProducts);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to delete product.");
+      throw requestError;
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  }
+
   async function handleAcceptOrder(orderId) {
+    return handleOrderStatusUpdate(orderId, "confirmed", "Unable to accept order.");
+  }
+
+  async function handleCancelOrder(orderId) {
+    return handleOrderStatusUpdate(orderId, "cancelled", "Unable to cancel order.");
+  }
+
+  async function handleOrderStatusUpdate(orderId, status, fallbackMessage) {
     setIsUpdatingOrder(true);
     setError("");
 
     try {
+      const accessToken = await getAccessToken();
       const response = await updateAdminOrder(
         orderId,
-        { status: "confirmed" },
-        session?.access_token
+        { status },
+        accessToken
       );
-      setAdminOrders((currentOrders) =>
-        currentOrders.map((order) => (order.id === orderId ? response.order : order))
-      );
+      setAdminOrders((currentOrders) => {
+        const nextOrders = currentOrders.map((order) =>
+          order.id === orderId ? response.order : order
+        );
+        syncAdminCache(adminAccount, nextOrders, adminProducts);
+        return nextOrders;
+      });
     } catch (requestError) {
-      setError(requestError.message || "Unable to accept order.");
+      setError(requestError.message || fallbackMessage);
       throw requestError;
     } finally {
       setIsUpdatingOrder(false);
@@ -388,11 +515,13 @@ export default function App() {
         {error ? <div className="page-shell"><div className="banner banner-error">{error}</div></div> : null}
         <AdminDashboard
           adminAccount={adminAccount}
+          isDeletingProduct={isDeletingProduct}
           isUpdatingOrder={isUpdatingOrder}
           isSavingProduct={isSavingProduct}
           onAcceptOrder={handleAcceptOrder}
+          onCancelOrder={handleCancelOrder}
           onCreateProduct={handleCreateProduct}
-          onRefreshOrders={refreshAdminOrders}
+          onDeleteProduct={handleDeleteProduct}
           onSignOut={handleSignOut}
           onViewStore={() => navigate("shop")}
           orders={adminOrders}

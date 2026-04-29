@@ -5,6 +5,12 @@ const categoryOptions = [
   { value: "housekeeping", label: "Housekeeping" }
 ];
 
+const pesoSign = "\u20b1";
+
+function getPricingUnitLabel(pricingUnit) {
+  return pricingUnit === "kilogram" ? "per kg" : "each";
+}
+
 export function CatalogPanel({
   filters,
   isLoading,
@@ -70,7 +76,8 @@ export function CatalogPanel({
             <h3>{product.name}</h3>
             <p>{product.description}</p>
             <div className="product-footer">
-              <strong>${product.price.toFixed(2)}</strong>
+              <strong>{pesoSign}{product.price.toFixed(2)}</strong>
+              <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
               <button className="primary-button" onClick={() => onAddToCart(product)} type="button">
                 Add to cart
               </button>

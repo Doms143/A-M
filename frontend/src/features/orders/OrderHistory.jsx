@@ -1,3 +1,5 @@
+const pesoSign = "\u20b1";
+
 export function OrderHistory({ orders }) {
   return (
     <section className="card">
@@ -15,7 +17,7 @@ export function OrderHistory({ orders }) {
               <span className={`status-pill status-${order.status}`}>{order.status}</span>
             </div>
             <p>{order.address_note || order.villa_number} | {order.delivery_window}</p>
-            <p>Total: ${Number(order.total).toFixed(2)}</p>
+            <p>Total: {pesoSign}{Number(order.total).toFixed(2)}</p>
           </article>
         ))}
       </div>

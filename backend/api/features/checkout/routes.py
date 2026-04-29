@@ -23,6 +23,6 @@ def checkout():
             "checkoutUrl": f"/checkout/{order_id}",
             "provider": provider_name,
             "publicKey": public_key,
-            "message": f"Order reserved. Attach your {provider_name} checkout flow for ${float(total):.2f}.",
+            "message": f"Order reserved. Attach your {provider_name} checkout flow for ₱{float(total):.2f}.",
         }
     )

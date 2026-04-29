@@ -97,10 +97,10 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
         </label>
         <div className="checkout-note">
           <span className="status-pill status-confirmed">Order total</span>
-          <strong>${summary.total.toFixed(2)}</strong>
+          <strong>₱{summary.total.toFixed(2)}</strong>
         </div>
         <button className="primary-button" disabled={cart.length === 0 || isSubmitting} type="submit">
-          {isSubmitting ? "Processing..." : `Place order - $${summary.total.toFixed(2)}`}
+          {isSubmitting ? "Processing..." : `Place order - ₱${summary.total.toFixed(2)}`}
         </button>
       </form>
     </section>
