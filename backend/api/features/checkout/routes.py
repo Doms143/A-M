@@ -2,7 +2,7 @@ import os
 
 from flask import Blueprint, request
 
-from api._lib.response import json_response
+from ..._lib.response import json_response
 
 checkout_bp = Blueprint("checkout", __name__)
 

@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
-    "backend": "py -m flask --app api.index:app --debug run --host 127.0.0.1 --port 5000",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview"
   },

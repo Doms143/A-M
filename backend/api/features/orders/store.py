@@ -1,4 +1,4 @@
-from api._lib.supabase_client import get_supabase_client, is_supabase_configured
+from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 
 def list_orders():
     if not is_supabase_configured(use_service_role=True):

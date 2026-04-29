@@ -1,10 +1,10 @@
 from flask import Flask
 from dotenv import load_dotenv
 
-from api.features.admin.routes import admin_bp
-from api.features.catalog.routes import catalog_bp
-from api.features.checkout.routes import checkout_bp
-from api.features.orders.routes import orders_bp
+from .features.admin.routes import admin_bp
+from .features.catalog.routes import catalog_bp
+from .features.checkout.routes import checkout_bp
+from .features.orders.routes import orders_bp
 
 load_dotenv()
 

@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 
-from api._lib.auth import optional_user
-from api._lib.supabase_client import get_supabase_client, is_supabase_configured
-from api.data_seed import CATALOG
+from ..._lib.auth import optional_user
+from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
+from ...data_seed import CATALOG
 
 DELIVERY_WINDOWS = {
     "within 30 minutes",
@@ -54,9 +54,27 @@ def validate_order_request(customer_details, items):
     }
 
 
+def _get_catalog():
+    if not is_supabase_configured(use_service_role=True):
+        return CATALOG
+
+    try:
+        supabase = get_supabase_client(use_service_role=True)
+        result = (
+            supabase.table("products")
+            .select("id, name, price, is_active")
+            .eq("is_active", True)
+            .execute()
+        )
+        products = result.data or []
+        return products or CATALOG
+    except Exception:
+        return CATALOG
+
+
 def build_order(customer_details, items):
     normalized_customer_details = validate_order_request(customer_details, items)
-    catalog_map = {item["id"]: item for item in CATALOG}
+    catalog_map = {item["id"]: item for item in _get_catalog()}
     normalized_items = []
     subtotal = 0
 

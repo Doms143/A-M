@@ -1,8 +1,8 @@
 from flask import Blueprint, request
 
-from api._lib.response import json_response
-from api._lib.supabase_client import get_supabase_client, is_supabase_configured
-from api.data_seed import CATALOG
+from ..._lib.response import json_response
+from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
+from ...data_seed import CATALOG
 
 catalog_bp = Blueprint("catalog", __name__)
 

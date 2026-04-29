@@ -1,8 +1,8 @@
 from flask import Blueprint, request
 
-from api._lib.auth import require_admin
-from api._lib.response import json_response
-from api._lib.supabase_client import get_supabase_client, is_supabase_configured
+from ..._lib.auth import require_admin
+from ..._lib.response import json_response
+from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 
 admin_bp = Blueprint("admin", __name__)
 

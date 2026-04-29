@@ -26,12 +26,16 @@ function getRoute() {
   if (hash === "/admin" || hash === "admin") {
     return "admin";
   }
+  if (hash === "/signin" || hash === "signin") {
+    return "signin";
+  }
   return "shop";
 }
 
 export default function App() {
   const [route, setRoute] = useState(getRoute);
   const [session, setSession] = useState(null);
+  const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [filters, setFilters] = useState(initialFilters);
@@ -44,7 +48,6 @@ export default function App() {
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isAdminReady, setIsAdminReady] = useState(false);
-  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [error, setError] = useState("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
 
@@ -102,7 +105,19 @@ export default function App() {
       data: { subscription }
     } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
+      setIsSessionChecked(true);
       setIsAdminReady(false);
+      
+      if (nextSession?.access_token) {
+        try {
+          const accountResponse = await getAdminAccount(nextSession.access_token);
+          setAdminAccount(accountResponse.account ?? null);
+        } catch {
+          setAdminAccount(null);
+        }
+      } else {
+        setAdminAccount(null);
+      }
     });
 
     return () => {
@@ -116,11 +131,21 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (!isSessionChecked) {
+      return;
+    }
+    
     if (route === "admin" && !session) {
       setIsAdminLoginOpen(true);
       navigate("shop");
     }
-  }, [route, session]);
+  }, [route, session, isSessionChecked]);
+
+  useEffect(() => {
+    if (route === "admin" && session?.access_token && !isAdminReady && adminAccount) {
+      refreshAdminData(session.access_token).catch(() => {});
+    }
+  }, [route, session, isAdminReady, adminAccount]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -196,9 +221,9 @@ export default function App() {
     }
   }
 
-  async function handleSignIn() {
+  function handleSignIn() {
     setError("");
-    setIsAdminLoginOpen(true);
+    navigate("signin");
   }
 
   async function handleAdminSignIn(credentials) {
@@ -220,7 +245,6 @@ export default function App() {
       }
 
       await refreshAdminData(data.session.access_token);
-      setIsAdminLoginOpen(false);
       navigate("admin");
     } catch (requestError) {
       setError(requestError.message || "Admin sign-in failed.");
@@ -303,14 +327,29 @@ export default function App() {
     }
   }
 
-  function closeAdminLogin() {
-    if (isSigningIn) {
-      return;
-    }
-    setIsAdminLoginOpen(false);
-    if (!session && getRoute() === "admin") {
-      navigate("shop");
-    }
+  if (route === "signin") {
+    return (
+      <>
+        <div className="page-shell">
+          <nav className="navbar-header">
+            <span className="navbar-brand">A&M Sari-Sari Store</span>
+            <div className="navbar-actions">
+              <button className="secondary-button" onClick={() => navigate("shop")} type="button">
+                Back
+              </button>
+            </div>
+          </nav>
+
+          <div className="signin-container">
+            {error ? <div className="banner banner-error">{error}</div> : null}
+            <AdminLoginPanel
+              isSigningIn={isSigningIn}
+              onSubmit={handleAdminSignIn}
+            />
+          </div>
+        </div>
+      </>
+    );
   }
 
   if (route === "admin" && session) {
@@ -374,6 +413,11 @@ export default function App() {
                 Sign In
               </button>
             ) : null}
+            {session && adminAccount ? (
+              <button className="secondary-button" onClick={() => navigate("admin")} type="button">
+                Dashboard
+              </button>
+            ) : null}
             {session ? (
               <button className="secondary-button" onClick={handleSignOut} type="button">
                 Sign out
@@ -412,7 +456,7 @@ export default function App() {
           </aside>
         </header>
 
-        {error && !isAdminLoginOpen ? <div className="banner banner-error">{error}</div> : null}
+        {error ? <div className="banner banner-error">{error}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
 
         <main className="dashboard-grid">
@@ -439,21 +483,6 @@ export default function App() {
           </aside>
         </main>
       </div>
-
-      {isAdminLoginOpen ? (
-        <div className="modal-backdrop" onClick={closeAdminLogin} role="presentation">
-          <div className="modal-shell" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
-            <button className="modal-close secondary-button" onClick={closeAdminLogin} type="button">
-              Close
-            </button>
-            {error ? <div className="banner banner-error">{error}</div> : null}
-            <AdminLoginPanel
-              isSigningIn={isSigningIn}
-              onSubmit={handleAdminSignIn}
-            />
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

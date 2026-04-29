@@ -108,6 +108,14 @@ textarea:focus-visible {
   padding: 32px 0 48px;
 }
 
+.signin-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 60vh;
+  padding: 48px 20px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -162,7 +170,8 @@ textarea:focus-visible {
 }
 
 .modal-shell:has(.login-card) {
-  padding: 20px;
+  width: min(720px, 100%);
+  padding: 28px;
 }
 
 .modal-shell:has(.login-card) .modal-close {
@@ -183,7 +192,18 @@ textarea:focus-visible {
 }
 
 .storefront-hero {
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
+  grid-template-columns: 1fr 1fr;
+}
+
+.admin-hero {
+  grid-template-columns: 1fr !important;
+}
+
+.admin-hero .hero-copy {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .hero-copy,
@@ -294,7 +314,21 @@ textarea:focus-visible {
 .admin-section-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
+  gap: 16px;
+}
+
+.admin-section-card .section-header {
+  margin-bottom: 0;
+}
+
+.admin-section-card > .product-grid {
+  flex-shrink: 0;
+}
+
+.admin-section-card > .stack-list {
+  height: auto;
+  max-height: none;
 }
 
 .admin-dashboard-summary {
@@ -342,15 +376,16 @@ textarea:focus-visible {
 }
 
 .login-card {
-  max-width: 520px;
+  max-width: 780px;
+  width: 100%;
   background: linear-gradient(135deg, rgba(255, 250, 245, 0.98), rgba(236, 253, 245, 0.96));
-  padding: 20px;
+  padding: 36px;
 }
 
 .login-card .section-header {
   text-align: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .login-card .section-header h2,
@@ -360,8 +395,8 @@ textarea:focus-visible {
 }
 
 .login-card .section-header h2 {
-  margin-bottom: 4px;
-  font-size: 1.5rem;
+  margin-bottom: 6px;
+  font-size: 1.75rem;
 }
 
 .login-card .section-header p {
@@ -370,7 +405,7 @@ textarea:focus-visible {
 }
 
 .login-card .checkout-form {
-  gap: 12px;
+  gap: 18px;
 }
 
 .stat-card {
