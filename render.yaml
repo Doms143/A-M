@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: am-website-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api.index:app
