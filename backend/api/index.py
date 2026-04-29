@@ -13,3 +13,18 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(catalog_bp)
 app.register_blueprint(orders_bp)
 app.register_blueprint(checkout_bp)
+
+
+@app.get("/")
+def root():
+    return {
+        "service": "a-m-backend",
+        "status": "ok",
+    }
+
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+    }
