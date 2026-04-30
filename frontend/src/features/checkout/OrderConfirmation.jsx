@@ -88,7 +88,7 @@ export function OrderConfirmation({ onRepeatOrder, order }) {
 
       <div className="order-detail-block order-confirmation-items">
         <h3>Items</h3>
-        <div className="stack-list">
+        <div className="stack-list order-confirmation-items-list">
           {items.map((item, index) => (
             <div className="order-item-row" key={`${item.product_id || item.name}-${index}`}>
               <div>

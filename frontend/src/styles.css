@@ -692,16 +692,24 @@ textarea:focus-visible {
   padding-right: 4px;
 }
 
-.cart-items-list::-webkit-scrollbar {
+.order-confirmation-items-list {
+  max-height: min(42vh, 360px);
+  padding-right: 4px;
+}
+
+.cart-items-list::-webkit-scrollbar,
+.order-confirmation-items-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.cart-items-list::-webkit-scrollbar-thumb {
+.cart-items-list::-webkit-scrollbar-thumb,
+.order-confirmation-items-list::-webkit-scrollbar-thumb {
   background: rgba(115, 82, 56, 0.22);
   border-radius: 999px;
 }
 
-.cart-items-list::-webkit-scrollbar-track {
+.cart-items-list::-webkit-scrollbar-track,
+.order-confirmation-items-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
@@ -1548,6 +1556,16 @@ textarea:focus-visible {
   border-color: rgba(22, 101, 52, 0.14);
 }
 
+.cart-added-banner {
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  width: fit-content;
+  max-width: min(100%, 420px);
+  margin-left: auto;
+  animation: slideUp 0.22s ease;
+}
+
 .empty-state {
   display: grid;
   gap: 6px;
@@ -1787,6 +1805,10 @@ textarea:focus-visible {
 
   .cart-items-list {
     max-height: min(34vh, 260px);
+  }
+
+  .order-confirmation-items-list {
+    max-height: min(38vh, 300px);
   }
 
   .product-footer,

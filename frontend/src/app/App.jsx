@@ -81,6 +81,7 @@ export default function App() {
   const [isAdminReady, setIsAdminReady] = useState(Boolean(cachedAdminState));
   const [error, setError] = useState("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [cartMessage, setCartMessage] = useState("");
   const [lastOrder, setLastOrder] = useState(null);
   const adminRefreshTokenRef = useRef("");
 
@@ -305,6 +306,7 @@ export default function App() {
     }
 
     setLastOrder(null);
+    setCartMessage(`${product.name} added to cart.`);
     setCart((currentCart) => {
       const existing = currentCart.find((item) => item.id === product.id);
       if (existing) {
@@ -318,6 +320,18 @@ export default function App() {
       return [...currentCart, { ...product, quantity: 1 }];
     });
   }
+
+  useEffect(() => {
+    if (!cartMessage) {
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setCartMessage("");
+    }, 2200);
+
+    return () => window.clearTimeout(timerId);
+  }, [cartMessage]);
 
   function updateQuantity(productId, nextQuantity) {
     setCart((currentCart) =>
@@ -692,6 +706,7 @@ export default function App() {
         </header>
 
         {error ? <div className="banner banner-error">{error}</div> : null}
+        {cartMessage ? <div className="banner banner-success cart-added-banner">{cartMessage}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
         {lastOrder ? <OrderConfirmation order={lastOrder} onRepeatOrder={repeatOrder} /> : null}
         <OrderStatusLookup
