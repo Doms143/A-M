@@ -1,4 +1,5 @@
 import uuid
+import re
 from datetime import datetime, timezone
 
 from ..._lib.auth import optional_user
@@ -11,6 +12,8 @@ DELIVERY_WINDOWS = {
     "schedule for later",
 }
 LEGACY_ORDER_COLUMNS = {"contact_email", "mobile_number", "subtotal"}
+MAX_ITEM_QUANTITY = 20
+MOBILE_NUMBER_PATTERN = re.compile(r"^09\d{9}$")
 
 
 def _clean_text(value):
@@ -35,8 +38,14 @@ def validate_order_request(customer_details, items):
     if not mobile_number:
         raise ValueError("Mobile number is required.")
 
+    if not MOBILE_NUMBER_PATTERN.match(mobile_number):
+        raise ValueError("Mobile number must be an 11-digit PH number starting with 09.")
+
     if not address_note:
         raise ValueError("Address or pickup note is required.")
+
+    if len(address_note) < 8:
+        raise ValueError("Address or pickup note must include a clearer location.")
 
     if delivery_window not in DELIVERY_WINDOWS:
         raise ValueError("Delivery window is invalid.")
@@ -87,6 +96,9 @@ def build_order(customer_details, items):
 
         if not product or quantity <= 0:
             continue
+
+        if quantity > MAX_ITEM_QUANTITY:
+            raise ValueError(f"Each item is limited to {MAX_ITEM_QUANTITY} per order.")
 
         line_total = product["price"] * quantity
         subtotal += line_total

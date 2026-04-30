@@ -24,15 +24,41 @@ function getCompactDescription(description) {
   return `${normalized.slice(0, 65).trimEnd()}...`;
 }
 
+function CatalogSkeletonGrid() {
+  return (
+    <div className="product-grid skeleton-grid" aria-hidden="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <article className="product-card skeleton-card" key={`catalog-skeleton-${index}`}>
+          <div className="product-card-top">
+            <span className="skeleton-pill skeleton-pill-wide" />
+            <span className="skeleton-pill" />
+          </div>
+          <span className="skeleton-line skeleton-line-title" />
+          <span className="skeleton-line" />
+          <span className="skeleton-line skeleton-line-short" />
+          <div className="product-footer">
+            <span className="skeleton-line skeleton-price" />
+            <span className="skeleton-button" />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export function CatalogPanel({
   filters,
   isLoading,
+  page,
+  pageCount,
   products,
+  totalProducts,
   onAddToCart,
-  onFiltersChange
+  onFiltersChange,
+  onPageChange
 }) {
   return (
-    <section className="card catalog-card">
+    <section className="card catalog-card" aria-busy={isLoading}>
       <div className="section-header catalog-header">
         <div>
           <h2>Sari-sari catalog</h2>
@@ -67,11 +93,11 @@ export function CatalogPanel({
           ))}
         </div>
         <span className="catalog-results">
-          {isLoading ? "Loading..." : `${products.length} item${products.length === 1 ? "" : "s"} found`}
+          {isLoading ? "Loading..." : `${totalProducts} item${totalProducts === 1 ? "" : "s"} found`}
         </span>
       </div>
 
-      {isLoading ? <p className="empty-state">Loading products...</p> : null}
+      {isLoading ? <CatalogSkeletonGrid /> : null}
       {!isLoading && products.length === 0 ? (
         <div className="empty-state">
           <h3>No products match this filter.</h3>
@@ -79,24 +105,48 @@ export function CatalogPanel({
         </div>
       ) : null}
 
-      <div className="product-grid">
-        {products.map((product) => (
-          <article className="product-card" key={product.id}>
-            <div className="product-card-top">
-              <div className="product-badge">{product.category}</div>
-              <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
-            </div>
-            <h3>{product.name}</h3>
-            <p className="product-summary">{getCompactDescription(product.description)}</p>
-            <div className="product-footer">
-              <strong>{pesoSign}{product.price.toFixed(2)}</strong>
-              <button className="primary-button" onClick={() => onAddToCart(product)} type="button">
-                Add to cart
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+      {!isLoading ? (
+        <div className="product-grid">
+          {products.map((product) => (
+            <article className="product-card" key={product.id}>
+              <div className="product-card-top">
+                <div className="product-badge">{product.category}</div>
+                <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
+              </div>
+              <h3>{product.name}</h3>
+              <p className="product-summary">{getCompactDescription(product.description)}</p>
+              <div className="product-footer">
+                <strong>{pesoSign}{product.price.toFixed(2)}</strong>
+                <button className="primary-button" onClick={() => onAddToCart(product)} type="button">
+                  Add to cart
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {!isLoading && pageCount > 1 ? (
+        <div className="pagination-controls">
+          <button
+            className="secondary-button"
+            disabled={page === 1}
+            onClick={() => onPageChange(page - 1)}
+            type="button"
+          >
+            Previous
+          </button>
+          <span className="pagination-info">Page {page} of {pageCount}</span>
+          <button
+            className="secondary-button"
+            disabled={page === pageCount}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

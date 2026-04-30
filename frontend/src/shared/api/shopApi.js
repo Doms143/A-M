@@ -14,6 +14,15 @@ export function getOrders(accessToken) {
   });
 }
 
+export function getOrderStatus(reference, mobileNumber) {
+  const params = new URLSearchParams({
+    reference,
+    mobileNumber
+  });
+
+  return http(`/orders?${params.toString()}`);
+}
+
 export function createOrder(payload, accessToken) {
   return http("/orders", {
     method: "POST",

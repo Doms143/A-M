@@ -6,7 +6,8 @@ const initialProductForm = {
   category: "refreshments",
   description: "",
   price: "",
-  pricingUnit: "piece"
+  pricingUnit: "piece",
+  isActive: true
 };
 
 const defaultCategories = ["refreshments", "wellness", "housekeeping"];
@@ -63,7 +64,8 @@ function buildProductFormState(product) {
     category: product.category ?? "refreshments",
     description: product.description ?? "",
     price: product.price ?? "",
-    pricingUnit: product.pricing_unit ?? "piece"
+    pricingUnit: product.pricing_unit ?? "piece",
+    isActive: product.is_active ?? true
   };
 }
 
@@ -89,6 +91,8 @@ export function AdminPanel({
   const [archivedOrdersPage, setArchivedOrdersPage] = useState(1);
   const [productsPage, setProductsPage] = useState(1);
   const [productQuery, setProductQuery] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderQuery, setOrderQuery] = useState("");
   const [activeMobileSection, setActiveMobileSection] = useState("products");
   const [isCreateProductOpen, setIsCreateProductOpen] = useState(false);
 
@@ -101,6 +105,22 @@ export function AdminPanel({
     [orders]
   );
 
+  const filteredActiveOrders = useMemo(() => {
+    const normalizedQuery = orderQuery.trim().toLowerCase();
+
+    return activeOrders.filter((order) => {
+      const statusMatch =
+        orderStatusFilter === "all" || order.status === orderStatusFilter;
+      const queryMatch =
+        !normalizedQuery ||
+        `${getCustomerName(order)} ${getAddressNote(order)} ${order.mobile_number || ""} ${order.id || ""}`
+          .toLowerCase()
+          .includes(normalizedQuery);
+
+      return statusMatch && queryMatch;
+    });
+  }, [activeOrders, orderQuery, orderStatusFilter]);
+
   const archivedOrders = useMemo(
     () => orders.filter((order) => archiveStatuses.has(order.status)),
     [orders]
@@ -108,8 +128,8 @@ export function AdminPanel({
 
   const paginatedOrders = useMemo(() => {
     const start = (ordersPage - 1) * ordersPerPage;
-    return activeOrders.slice(start, start + ordersPerPage);
-  }, [activeOrders, ordersPage]);
+    return filteredActiveOrders.slice(start, start + ordersPerPage);
+  }, [filteredActiveOrders, ordersPage]);
 
   const paginatedArchivedOrders = useMemo(() => {
     const start = (archivedOrdersPage - 1) * ordersPerPage;
@@ -134,7 +154,7 @@ export function AdminPanel({
     return filteredProducts.slice(start, start + productsPerPage);
   }, [filteredProducts, productsPage]);
 
-  const ordersPageCount = Math.ceil(activeOrders.length / ordersPerPage);
+  const ordersPageCount = Math.ceil(filteredActiveOrders.length / ordersPerPage);
   const archivedOrdersPageCount = Math.ceil(archivedOrders.length / ordersPerPage);
   const productsPageCount = Math.ceil(filteredProducts.length / productsPerPage);
 
@@ -147,6 +167,16 @@ export function AdminPanel({
     () => products.find((product) => product.id === selectedProductId) ?? null,
     [products, selectedProductId]
   );
+
+  function updateOrderStatusFilter(nextStatus) {
+    setOrderStatusFilter(nextStatus);
+    setOrdersPage(1);
+  }
+
+  function updateOrderQuery(nextQuery) {
+    setOrderQuery(nextQuery);
+    setOrdersPage(1);
+  }
 
   function viewArchives() {
     setIsArchiveModalOpen(true);
@@ -206,6 +236,10 @@ export function AdminPanel({
 
     await onCancelOrder(selectedOrder.id);
     setSelectedOrderId(null);
+  }
+
+  function handlePrintOrder() {
+    window.print();
   }
 
   return (
@@ -349,6 +383,19 @@ export function AdminPanel({
                   <option value="piece">Per piece</option>
                   <option value="kilogram">Per kilogram</option>
                 </select>
+                <label className="toggle-row">
+                  <input
+                    checked={formState.isActive}
+                    onChange={(event) =>
+                      setFormState((current) => ({ ...current, isActive: event.target.checked }))
+                    }
+                    type="checkbox"
+                  />
+                  <span>
+                    <strong>Available in storefront</strong>
+                    <small>Turn off to hide this product from customers.</small>
+                  </span>
+                </label>
                 <div className="action-group">
                   <button className="primary-button" disabled={isSavingProduct} type="submit">
                     {isSavingProduct ? "Saving..." : "Save product"}
@@ -441,14 +488,31 @@ export function AdminPanel({
                 <h2>Orders queue</h2>
                 <p>Review active orders here. Open one to accept or cancel it.</p>
               </div>
-              <span>{activeOrders.length} active</span>
+              <span>{filteredActiveOrders.length} shown</span>
+            </div>
+
+            <div className="admin-filter-toolbar">
+              <select
+                className="select-input"
+                value={orderStatusFilter}
+                onChange={(event) => updateOrderStatusFilter(event.target.value)}
+              >
+                <option value="all">All active statuses</option>
+                <option value="pending">Pending only</option>
+              </select>
+              <input
+                className="text-input"
+                placeholder="Search customer, mobile, address, or reference"
+                value={orderQuery}
+                onChange={(event) => updateOrderQuery(event.target.value)}
+              />
             </div>
 
             <div className="stack-list">
-              {activeOrders.length === 0 ? (
+              {filteredActiveOrders.length === 0 ? (
                 <div className="empty-state compact-empty-state">
-                  <h3>No active orders.</h3>
-                  <p>New customer orders will appear here until they are accepted or canceled.</p>
+                  <h3>No matching active orders.</h3>
+                  <p>Adjust the status filter or search text to see more orders.</p>
                 </div>
               ) : null}
               {paginatedOrders.map((order) => (
@@ -505,19 +569,33 @@ export function AdminPanel({
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
-            <section className="card">
+            <section className="card printable-order">
+              <div className="print-receipt-header">
+                <strong>A&amp;M Sari-Sari Store</strong>
+                <span>Order receipt</span>
+              </div>
+
               <div className="section-header">
                 <div>
                   <span className="eyebrow">Order details</span>
                   <h2>{getCustomerName(selectedOrder)}</h2>
                   <p>Placed {formatDateTime(selectedOrder.created_at)}</p>
                 </div>
-                <button className="tertiary-button" onClick={() => setSelectedOrderId(null)} type="button">
-                  Close
-                </button>
+                <div className="order-modal-actions order-header-actions">
+                  <button className="secondary-button" onClick={handlePrintOrder} type="button">
+                    Print receipt
+                  </button>
+                  <button className="tertiary-button" onClick={() => setSelectedOrderId(null)} type="button">
+                    Close
+                  </button>
+                </div>
               </div>
 
               <div className="order-detail-grid">
+                <div className="order-detail-card">
+                  <span className="field-label">Reference</span>
+                  <strong>{String(selectedOrder.id || "").slice(0, 8).toUpperCase()}</strong>
+                </div>
                 <div className="order-detail-card">
                   <span className="field-label">Mobile number</span>
                   <strong>{selectedOrder.mobile_number || "Not provided"}</strong>
@@ -768,6 +846,19 @@ export function AdminPanel({
                   <option value="piece">Per piece</option>
                   <option value="kilogram">Per kilogram</option>
                 </select>
+                <label className="toggle-row">
+                  <input
+                    checked={editFormState.isActive}
+                    onChange={(event) =>
+                      setEditFormState((current) => ({ ...current, isActive: event.target.checked }))
+                    }
+                    type="checkbox"
+                  />
+                  <span>
+                    <strong>Available in storefront</strong>
+                    <small>Turn off to hide this product from customers.</small>
+                  </span>
+                </label>
 
                 <div className="product-modal-actions action-group-split">
                   <button

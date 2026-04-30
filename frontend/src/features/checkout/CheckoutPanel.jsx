@@ -1,6 +1,28 @@
 import { useState } from "react";
 
 const pesoSign = "\u20b1";
+const mobileNumberPattern = /^09\d{9}$/;
+
+function getCheckoutErrors(formState) {
+  const customerName = formState.customerName.trim();
+  const mobileNumber = formState.mobileNumber.trim();
+  const addressNote = formState.addressNote.trim();
+  const errors = {};
+
+  if (customerName.length < 2) {
+    errors.customerName = "Enter the customer's full name.";
+  }
+
+  if (!mobileNumberPattern.test(mobileNumber)) {
+    errors.mobileNumber = "Use an 11-digit PH mobile number starting with 09.";
+  }
+
+  if (addressNote.length < 8) {
+    errors.addressNote = "Add a clearer house number, street, purok, or landmark.";
+  }
+
+  return errors;
+}
 
 export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }) {
   const [formState, setFormState] = useState({
@@ -10,6 +32,32 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
     deliveryWindow: "within 30 minutes",
     notes: ""
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+
+  const validationErrors = getCheckoutErrors(formState);
+  const isFormValid = Object.keys(validationErrors).length === 0;
+
+  function updateField(field, value) {
+    setFormState((current) => ({ ...current, [field]: value }));
+    setFormErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      const nextErrors = { ...current };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  }
+
+  function markFieldTouched(field) {
+    setTouchedFields((current) => ({ ...current, [field]: true }));
+  }
+
+  function getVisibleError(field) {
+    return formErrors[field] || (touchedFields[field] ? validationErrors[field] : "");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -17,8 +65,18 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
       return;
     }
 
+    const nextErrors = getCheckoutErrors(formState);
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     await onSubmit({
-      ...formState,
+      customerName: formState.customerName.trim(),
+      mobileNumber: formState.mobileNumber.trim(),
+      addressNote: formState.addressNote.trim(),
+      deliveryWindow: formState.deliveryWindow,
+      notes: formState.notes.trim(),
       email: session?.user?.email || "customer@sarisari.local",
       total: summary.total
     });
@@ -39,47 +97,51 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
           <span className="field-label">Customer name</span>
           <input
             className="text-input"
+            aria-invalid={Boolean(getVisibleError("customerName"))}
             placeholder="Enter full name"
             value={formState.customerName}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, customerName: event.target.value }))
-            }
+            onBlur={() => markFieldTouched("customerName")}
+            onChange={(event) => updateField("customerName", event.target.value)}
             required
           />
+          {getVisibleError("customerName") ? <span className="field-error">{getVisibleError("customerName")}</span> : null}
         </label>
         <label className="field-block">
           <span className="field-label">Mobile number</span>
           <input
             className="text-input"
+            aria-invalid={Boolean(getVisibleError("mobileNumber"))}
+            inputMode="numeric"
+            maxLength={11}
+            pattern="09[0-9]{9}"
             placeholder="09XXXXXXXXX"
             value={formState.mobileNumber}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, mobileNumber: event.target.value }))
-            }
+            onBlur={() => markFieldTouched("mobileNumber")}
+            onChange={(event) => updateField("mobileNumber", event.target.value.replace(/\D/g, "").slice(0, 11))}
             required
             type="tel"
           />
+          {getVisibleError("mobileNumber") ? <span className="field-error">{getVisibleError("mobileNumber")}</span> : null}
         </label>
         <label className="field-block">
           <span className="field-label">Address or pickup note</span>
           <input
             className="text-input"
+            aria-invalid={Boolean(getVisibleError("addressNote"))}
             placeholder="House number, purok, street, or landmark"
             value={formState.addressNote}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, addressNote: event.target.value }))
-            }
+            onBlur={() => markFieldTouched("addressNote")}
+            onChange={(event) => updateField("addressNote", event.target.value)}
             required
           />
+          {getVisibleError("addressNote") ? <span className="field-error">{getVisibleError("addressNote")}</span> : null}
         </label>
         <label className="field-block">
           <span className="field-label">Delivery window</span>
           <select
             className="select-input"
             value={formState.deliveryWindow}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, deliveryWindow: event.target.value }))
-            }
+            onChange={(event) => updateField("deliveryWindow", event.target.value)}
           >
             <option>within 30 minutes</option>
             <option>within 1 hour</option>
@@ -92,16 +154,14 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
             className="text-area"
             placeholder="Optional notes for packaging, substitutions, or delivery"
             value={formState.notes}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, notes: event.target.value }))
-            }
+            onChange={(event) => updateField("notes", event.target.value)}
           />
         </label>
         <div className="checkout-note">
           <span className="status-pill status-confirmed">Order total</span>
           <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
         </div>
-        <button className="primary-button" disabled={cart.length === 0 || isSubmitting} type="submit">
+        <button className="primary-button" disabled={cart.length === 0 || isSubmitting || !isFormValid} type="submit">
           {isSubmitting ? "Processing..." : `Place order - ${pesoSign}${summary.total.toFixed(2)}`}
         </button>
       </form>

@@ -13,6 +13,16 @@ def _clean_text(value):
     return str(value).strip()
 
 
+def _clean_bool(value, default=True):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "active"}
+    return bool(value)
+
+
 def _require_supabase():
     if not is_supabase_configured(use_service_role=True):
         raise RuntimeError("Supabase service role configuration is missing.")
@@ -52,7 +62,7 @@ def _validate_product(payload):
         "description": description,
         "price": price,
         "pricing_unit": pricing_unit,
-        "is_active": True,
+        "is_active": _clean_bool(payload.get("isActive", payload.get("is_active")), True),
     }
 
 

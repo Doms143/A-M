@@ -4,10 +4,13 @@ import { AdminDashboard } from "../features/admin/AdminDashboard";
 import { CatalogPanel } from "../features/catalog/CatalogPanel";
 import { CartPanel } from "../features/cart/CartPanel";
 import { CheckoutPanel } from "../features/checkout/CheckoutPanel";
+import { OrderConfirmation } from "../features/checkout/OrderConfirmation";
+import { OrderStatusLookup } from "../features/orders/OrderStatusLookup";
 import {
   getCatalog,
   createOrder,
   createCheckoutSession,
+  getOrderStatus,
   getAdminAccount,
   createAdminProduct,
   deleteAdminProduct,
@@ -23,6 +26,7 @@ const initialFilters = {
 };
 
 const ADMIN_CACHE_KEY = "am-admin-dashboard-cache";
+const MAX_ITEM_QUANTITY = 20;
 
 function readAdminCache() {
   try {
@@ -64,6 +68,7 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [filters, setFilters] = useState(initialFilters);
+  const [catalogPage, setCatalogPage] = useState(1);
   const [adminProducts, setAdminProducts] = useState(cachedAdminState?.products ?? []);
   const [adminOrders, setAdminOrders] = useState(cachedAdminState?.orders ?? []);
   const [adminAccount, setAdminAccount] = useState(cachedAdminState?.account ?? null);
@@ -76,6 +81,7 @@ export default function App() {
   const [isAdminReady, setIsAdminReady] = useState(Boolean(cachedAdminState));
   const [error, setError] = useState("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [lastOrder, setLastOrder] = useState(null);
   const adminRefreshTokenRef = useRef("");
 
   function syncAdminCache(nextAccount, nextOrders, nextProducts) {
@@ -257,6 +263,25 @@ export default function App() {
     });
   }, [filters, products]);
 
+  const catalogItemsPerPage = 6;
+
+  const paginatedProducts = useMemo(() => {
+    const start = (catalogPage - 1) * catalogItemsPerPage;
+    return filteredProducts.slice(start, start + catalogItemsPerPage);
+  }, [catalogPage, filteredProducts]);
+
+  const catalogPageCount = Math.max(1, Math.ceil(filteredProducts.length / catalogItemsPerPage));
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    if (catalogPage > catalogPageCount) {
+      setCatalogPage(catalogPageCount);
+    }
+  }, [catalogPage, catalogPageCount]);
+
   const cartSummary = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     return { subtotal, total: subtotal };
@@ -273,11 +298,14 @@ export default function App() {
   );
 
   function addToCart(product) {
+    setLastOrder(null);
     setCart((currentCart) => {
       const existing = currentCart.find((item) => item.id === product.id);
       if (existing) {
         return currentCart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id
+            ? { ...item, quantity: Math.min(MAX_ITEM_QUANTITY, item.quantity + 1) }
+            : item
         );
       }
 
@@ -289,7 +317,9 @@ export default function App() {
     setCart((currentCart) =>
       currentCart
         .map((item) =>
-          item.id === productId ? { ...item, quantity: Math.max(0, nextQuantity) } : item
+          item.id === productId
+            ? { ...item, quantity: Math.min(MAX_ITEM_QUANTITY, Math.max(0, nextQuantity)) }
+            : item
         )
         .filter((item) => item.quantity > 0)
     );
@@ -309,6 +339,7 @@ export default function App() {
       const orderResponse = await createOrder(payload, session?.access_token);
       const checkoutResponse = await createCheckoutSession(orderResponse.order, session?.access_token);
       setCart([]);
+      setLastOrder(orderResponse.order);
       setCheckoutMessage(checkoutResponse.message);
       refreshAdminOrders().catch(() => {});
     } catch (requestError) {
@@ -498,11 +529,31 @@ export default function App() {
 
           {error ? <div className="banner banner-error">{error}</div> : null}
 
-          <section className="card admin-login-card">
+          <section className="card admin-login-card admin-loading-card" aria-busy="true">
             <div className="section-header">
               <div>
                 <h2>Preparing dashboard</h2>
                 <p>Your admin data is loading now.</p>
+              </div>
+            </div>
+            <div className="admin-loading-skeleton" aria-hidden="true">
+              <div className="admin-loading-main">
+                <span className="skeleton-line skeleton-line-title" />
+                <span className="skeleton-line" />
+                <span className="skeleton-line skeleton-line-short" />
+                <div className="admin-loading-stats">
+                  <span className="skeleton-stat" />
+                  <span className="skeleton-stat" />
+                  <span className="skeleton-stat" />
+                </div>
+              </div>
+              <div className="admin-loading-list">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <div className="cart-item-card skeleton-card" key={`admin-loading-${index}`}>
+                    <span className="skeleton-line skeleton-line-title" />
+                    <span className="skeleton-line" />
+                  </div>
+                ))}
               </div>
             </div>
           </section>
@@ -584,6 +635,7 @@ export default function App() {
           <div className="storefront-desktop-cart">
             <CartPanel
               cart={cart}
+              maxQuantity={MAX_ITEM_QUANTITY}
               summary={cartSummary}
               onUpdateQuantity={updateQuantity}
             />
@@ -592,19 +644,26 @@ export default function App() {
 
         {error ? <div className="banner banner-error">{error}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
+        {lastOrder ? <OrderConfirmation order={lastOrder} /> : null}
+        <OrderStatusLookup initialOrder={lastOrder} onLookup={getOrderStatus} />
 
         <main className="dashboard-grid">
           <CatalogPanel
             filters={filters}
             isLoading={isLoading}
-            products={filteredProducts}
+            page={catalogPage}
+            pageCount={catalogPageCount}
+            products={paginatedProducts}
+            totalProducts={filteredProducts.length}
             onAddToCart={addToCart}
             onFiltersChange={setFilters}
+            onPageChange={setCatalogPage}
           />
           <aside className="sidebar-stack">
             <div className="storefront-mobile-cart">
               <CartPanel
                 cart={cart}
+                maxQuantity={MAX_ITEM_QUANTITY}
                 summary={cartSummary}
                 onUpdateQuantity={updateQuantity}
               />

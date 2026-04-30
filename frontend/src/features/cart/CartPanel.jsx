@@ -6,10 +6,17 @@ function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
-export function CartPanel({ cart, summary, onUpdateQuantity }) {
+export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity }) {
   const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartCardRef = useRef(null);
   const [summaryMode, setSummaryMode] = useState("floating");
+
+  function scrollToCart() {
+    cartCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 980px)");
@@ -70,17 +77,26 @@ export function CartPanel({ cart, summary, onUpdateQuantity }) {
           </div>
         ) : null}
 
-      <div className="stack-list cart-items-list">
-        {cart.map((item) => (
-          <div className="cart-row cart-item-card" key={item.id}>
+        <div className="stack-list cart-items-list">
+          {cart.map((item) => (
+            <div className="cart-row cart-item-card" key={item.id}>
               <div className="cart-copy">
                 <strong>{item.name}</strong>
                 <p>{pesoSign}{item.price.toFixed(2)} {getPricingUnitLabel(item.pricing_unit)}</p>
+                {item.quantity >= maxQuantity ? (
+                  <span className="cart-limit-note">Limit {maxQuantity} per item</span>
+                ) : null}
               </div>
               <div className="quantity-control">
                 <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">-</button>
                 <span>{item.quantity}</span>
-                <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} type="button">+</button>
+                <button
+                  disabled={item.quantity >= maxQuantity}
+                  onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                  type="button"
+                >
+                  +
+                </button>
               </div>
               <strong className="cart-line-total">{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>
             </div>
@@ -111,14 +127,19 @@ export function CartPanel({ cart, summary, onUpdateQuantity }) {
       </section>
 
       {summaryMode === "floating" ? (
-        <div className="mobile-cart-summary mobile-cart-summary-floating">
+        <button
+          aria-label={`View cart, ${totalUnits} item${totalUnits === 1 ? "" : "s"}, total ${pesoSign}${summary.total.toFixed(2)}`}
+          className="mobile-cart-summary mobile-cart-summary-floating"
+          onClick={scrollToCart}
+          type="button"
+        >
           <div className="mobile-cart-summary-copy">
             <strong>{totalUnits} item{totalUnits === 1 ? "" : "s"}</strong>
             <span>
               <strong className="mobile-cart-summary-copy-total">Total {pesoSign}{summary.total.toFixed(2)}</strong>
             </span>
           </div>
-        </div>
+        </button>
       ) : null}
     </>
   );
