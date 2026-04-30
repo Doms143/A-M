@@ -16,7 +16,6 @@ export function AdminDashboard({
 }) {
   const totalOrders = orders.length;
   const activeProducts = products.filter((product) => product.is_active).length;
-  const hiddenProducts = products.length - activeProducts;
 
   return (
     <div className="page-shell">
@@ -24,10 +23,12 @@ export function AdminDashboard({
         <span className="navbar-brand">A&M Sari-Sari Store</span>
         <div className="navbar-actions">
           <button className="secondary-button" onClick={onViewStore} type="button">
-            Storefront
+            <span className="desktop-only">Storefront</span>
+            <span className="mobile-only">Store</span>
           </button>
-          <button className="primary-button" onClick={onSignOut} type="button">
-            Sign out
+          <button className="tertiary-button" onClick={onSignOut} type="button">
+            <span className="desktop-only">Sign out</span>
+            <span className="mobile-only">Logout</span>
           </button>
         </div>
       </nav>
@@ -52,24 +53,6 @@ export function AdminDashboard({
           </div>
         </div>
       </header>
-
-      <section className="admin-dashboard-summary">
-        <article className="card stat-card">
-          <span className="stat-label">Products</span>
-          <strong className="stat-value">{products.length}</strong>
-          <p>{activeProducts} active in the storefront catalog.</p>
-        </article>
-        <article className="card stat-card">
-          <span className="stat-label">Hidden</span>
-          <strong className="stat-value">{hiddenProducts}</strong>
-          <p>Items currently kept out of the customer storefront.</p>
-        </article>
-        <article className="card stat-card">
-          <span className="stat-label">Orders</span>
-          <strong className="stat-value">{totalOrders}</strong>
-          <p>Recent orders available for admin review.</p>
-        </article>
-      </section>
 
       <AdminPanel
         isDeletingProduct={isDeletingProduct}

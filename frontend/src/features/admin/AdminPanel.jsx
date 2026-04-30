@@ -24,6 +24,23 @@ function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
+function getCompactDescription(description) {
+  if (!description) {
+    return "No description";
+  }
+
+  const normalized = description.trim();
+  if (normalized.length <= 64) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 61).trimEnd()}...`;
+}
+
+function getCompactOrderMeta(order) {
+  return `${order.mobile_number || "No mobile"} | ${order.deliveryWindow || order.delivery_window || "No window"}`;
+}
+
 function formatDateTime(value) {
   if (!value) {
     return "Unknown";
@@ -73,6 +90,7 @@ export function AdminPanel({
   const [productsPage, setProductsPage] = useState(1);
   const [productQuery, setProductQuery] = useState("");
   const [activeMobileSection, setActiveMobileSection] = useState("products");
+  const [isCreateProductOpen, setIsCreateProductOpen] = useState(false);
 
   const ordersPerPage = 5;
   const productsPerPage = 6;
@@ -139,6 +157,7 @@ export function AdminPanel({
     await onCreateProduct(formState);
     setFormState(initialProductForm);
     setCategoryMode("preset");
+    setIsCreateProductOpen(false);
   }
 
   function openProductModal(product) {
@@ -198,7 +217,7 @@ export function AdminPanel({
           onClick={() => setActiveMobileSection("products")}
           type="button"
         >
-          View admin products
+          Products
         </button>
         <button
           aria-pressed={activeMobileSection === "orders"}
@@ -206,7 +225,7 @@ export function AdminPanel({
           onClick={() => setActiveMobileSection("orders")}
           type="button"
         >
-          View recent orders
+          Orders
         </button>
         <button
           aria-pressed={activeMobileSection === "archives"}
@@ -214,7 +233,7 @@ export function AdminPanel({
           onClick={viewArchives}
           type="button"
         >
-          View archives
+          Archives
         </button>
       </div>
 
@@ -225,88 +244,21 @@ export function AdminPanel({
           <div className="section-header compact">
             <div>
               <h2>Admin products</h2>
-              <p>Add new products here. Click an existing product card to edit or delete it.</p>
+              <p>Manage inventory, search the catalog, and open a product when you need to edit it.</p>
             </div>
             <span>{products.length} items</span>
           </div>
 
-          <form className="checkout-form" onSubmit={handleSubmit}>
-            <input
-              className="text-input"
-              placeholder="Product name"
-              required
-              value={formState.name}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-            <select
-              className="select-input"
-              value={categoryMode === "custom" ? "other" : formState.category}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                if (nextValue === "other") {
-                  setCategoryMode("custom");
-                  setFormState((current) => ({ ...current, category: "" }));
-                  return;
-                }
-
-                setCategoryMode("preset");
-                setFormState((current) => ({ ...current, category: nextValue }));
-              }}
+          <div className="admin-toolbar">
+            <button
+              className={isCreateProductOpen ? "secondary-button" : "primary-button"}
+              onClick={() => setIsCreateProductOpen((current) => !current)}
+              type="button"
             >
-              <option value="refreshments">Refreshments</option>
-              <option value="wellness">Wellness</option>
-              <option value="housekeeping">Housekeeping</option>
-              <option value="other">Other</option>
-            </select>
-            {categoryMode === "custom" ? (
-              <input
-                className="text-input"
-                placeholder="Type category"
-                required
-                value={formState.category}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, category: event.target.value }))
-                }
-              />
-            ) : null}
-            <textarea
-              className="text-area"
-              placeholder="Product description"
-              required
-              value={formState.description}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, description: event.target.value }))
-              }
-            />
-            <input
-              className="text-input"
-              min="0.01"
-              placeholder="Price"
-              required
-              step="0.01"
-              type="number"
-              value={formState.price}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, price: event.target.value }))
-              }
-            />
-            <select
-              className="select-input"
-              value={formState.pricingUnit}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, pricingUnit: event.target.value }))
-              }
-            >
-              <option value="piece">Per piece</option>
-              <option value="kilogram">Per kilogram</option>
-            </select>
-            <button className="primary-button" disabled={isSavingProduct} type="submit">
-              {isSavingProduct ? "Saving..." : "Save product"}
+              {isCreateProductOpen ? "Close form" : "Add product"}
             </button>
             <input
-              className="text-input"
+              className="text-input admin-search-input"
               placeholder="Search product"
               value={productQuery}
               onChange={(event) => {
@@ -314,53 +266,160 @@ export function AdminPanel({
                 setProductsPage(1);
               }}
             />
-          </form>
-
-          <div className="product-grid admin-product-grid">
-            {paginatedProducts.map((product) => (
-              <button
-                className="product-card order-card-button"
-                key={product.id}
-                onClick={() => openProductModal(product)}
-                type="button"
-              >
-                <div className="product-card-top">
-                  <div className="product-badge">{product.category}</div>
-                  <span className={`status-pill ${product.is_active ? "status-confirmed" : "status-muted"}`}>
-                    {product.is_active ? "Active" : "Hidden"}
-                  </span>
-                </div>
-                <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <div className="product-footer">
-                  <strong>{pesoSign}{Number(product.price).toFixed(2)}</strong>
-                  <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
-                </div>
-              </button>
-            ))}
           </div>
 
-          {productsPageCount > 1 && (
-            <div className="pagination-controls">
-              <button
-                className="secondary-button"
-                disabled={productsPage === 1}
-                onClick={() => setProductsPage(productsPage - 1)}
-                type="button"
-              >
-                Previous
-              </button>
-              <span className="pagination-info">Page {productsPage} of {productsPageCount}</span>
-              <button
-                className="secondary-button"
-                disabled={productsPage === productsPageCount}
-                onClick={() => setProductsPage(productsPage + 1)}
-                type="button"
-              >
-                Next
-              </button>
+          {isCreateProductOpen ? (
+            <section className="admin-subcard admin-form-panel">
+              <div className="section-header compact admin-subcard-header">
+                <div>
+                  <h2>New product</h2>
+                  <p>Add one item at a time, then review it in the list below.</p>
+                </div>
+              </div>
+
+              <form className="checkout-form" onSubmit={handleSubmit}>
+                <input
+                  className="text-input"
+                  placeholder="Product name"
+                  required
+                  value={formState.name}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+                <select
+                  className="select-input"
+                  value={categoryMode === "custom" ? "other" : formState.category}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    if (nextValue === "other") {
+                      setCategoryMode("custom");
+                      setFormState((current) => ({ ...current, category: "" }));
+                      return;
+                    }
+
+                    setCategoryMode("preset");
+                    setFormState((current) => ({ ...current, category: nextValue }));
+                  }}
+                >
+                  <option value="refreshments">Refreshments</option>
+                  <option value="wellness">Wellness</option>
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="other">Other</option>
+                </select>
+                {categoryMode === "custom" ? (
+                  <input
+                    className="text-input"
+                    placeholder="Type category"
+                    required
+                    value={formState.category}
+                    onChange={(event) =>
+                      setFormState((current) => ({ ...current, category: event.target.value }))
+                    }
+                  />
+                ) : null}
+                <textarea
+                  className="text-area"
+                  placeholder="Product description"
+                  required
+                  value={formState.description}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, description: event.target.value }))
+                  }
+                />
+                <input
+                  className="text-input"
+                  min="0.01"
+                  placeholder="Price"
+                  required
+                  step="0.01"
+                  type="number"
+                  value={formState.price}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, price: event.target.value }))
+                  }
+                />
+                <select
+                  className="select-input"
+                  value={formState.pricingUnit}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, pricingUnit: event.target.value }))
+                  }
+                >
+                  <option value="piece">Per piece</option>
+                  <option value="kilogram">Per kilogram</option>
+                </select>
+                <div className="action-group">
+                  <button className="primary-button" disabled={isSavingProduct} type="submit">
+                    {isSavingProduct ? "Saving..." : "Save product"}
+                  </button>
+                  <button
+                    className="tertiary-button"
+                    onClick={() => setIsCreateProductOpen(false)}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
+
+          <section className="admin-subcard">
+            <div className="section-header compact admin-subcard-header">
+              <div>
+                <h2>Inventory list</h2>
+                <p>Tap any product card to update details or remove it.</p>
+              </div>
+              <span>{filteredProducts.length} match{filteredProducts.length === 1 ? "" : "es"}</span>
             </div>
-          )}
+
+            <div className="product-grid admin-product-grid">
+              {paginatedProducts.map((product) => (
+                <button
+                  className="product-card order-card-button"
+                  key={product.id}
+                  onClick={() => openProductModal(product)}
+                  type="button"
+                >
+                  <div className="product-card-top">
+                    <div className="product-badge">{product.category}</div>
+                    <span className={`status-pill ${product.is_active ? "status-confirmed" : "status-muted"}`}>
+                      {product.is_active ? "Active" : "Hidden"}
+                    </span>
+                  </div>
+                  <h3>{product.name}</h3>
+                  <p className="product-summary">{getCompactDescription(product.description)}</p>
+                  <div className="product-footer">
+                    <strong>{pesoSign}{Number(product.price).toFixed(2)}</strong>
+                    <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {productsPageCount > 1 && (
+              <div className="pagination-controls">
+                <button
+                  className="secondary-button"
+                  disabled={productsPage === 1}
+                  onClick={() => setProductsPage(productsPage - 1)}
+                  type="button"
+                >
+                  Previous
+                </button>
+                <span className="pagination-info">Page {productsPage} of {productsPageCount}</span>
+                <button
+                  className="secondary-button"
+                  disabled={productsPage === productsPageCount}
+                  onClick={() => setProductsPage(productsPage + 1)}
+                  type="button"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </section>
         </section>
 
         <section
@@ -369,61 +428,71 @@ export function AdminPanel({
           <div className="section-header compact">
             <div>
               <h2>Recent orders</h2>
-              <p>Latest rows from the Supabase `orders` table.</p>
+              <p>Active orders that still need action.</p>
             </div>
-            <button className="secondary-button" onClick={viewArchives} type="button">
+            <button className="tertiary-button" onClick={viewArchives} type="button">
               Archive
             </button>
           </div>
 
-          <div className="stack-list">
-            {activeOrders.length === 0 ? (
-              <div className="empty-state compact-empty-state">
-                <h3>No active orders.</h3>
-                <p>New customer orders will appear here until they are accepted or canceled.</p>
+          <section className="admin-subcard">
+            <div className="section-header compact admin-subcard-header">
+              <div>
+                <h2>Orders queue</h2>
+                <p>Review active orders here. Open one to accept or cancel it.</p>
               </div>
-            ) : null}
-            {paginatedOrders.map((order) => (
-              <button
-                className="order-card order-card-button"
-                key={order.id}
-                onClick={() => setSelectedOrderId(order.id)}
-                type="button"
-              >
-                <div className="order-header">
-                  <strong>{getCustomerName(order)}</strong>
-                  <span className={`status-pill status-${order.status}`}>{order.status}</span>
-                </div>
-                <p>{getAddressNote(order)} | {order.deliveryWindow || order.delivery_window}</p>
-                <div className="order-footer">
-                  <span>{order.mobile_number || "No mobile number"}</span>
-                  <strong>{pesoSign}{Number(order.total).toFixed(2)}</strong>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {ordersPageCount > 1 && (
-            <div className="pagination-controls">
-              <button
-                className="secondary-button"
-                disabled={ordersPage === 1}
-                onClick={() => setOrdersPage(ordersPage - 1)}
-                type="button"
-              >
-                Previous
-              </button>
-              <span className="pagination-info">Page {ordersPage} of {ordersPageCount}</span>
-              <button
-                className="secondary-button"
-                disabled={ordersPage === ordersPageCount}
-                onClick={() => setOrdersPage(ordersPage + 1)}
-                type="button"
-              >
-                Next
-              </button>
+              <span>{activeOrders.length} active</span>
             </div>
-          )}
+
+            <div className="stack-list">
+              {activeOrders.length === 0 ? (
+                <div className="empty-state compact-empty-state">
+                  <h3>No active orders.</h3>
+                  <p>New customer orders will appear here until they are accepted or canceled.</p>
+                </div>
+              ) : null}
+              {paginatedOrders.map((order) => (
+                <button
+                  className="order-card order-card-button"
+                  key={order.id}
+                  onClick={() => setSelectedOrderId(order.id)}
+                  type="button"
+                >
+                  <div className="order-header">
+                    <strong>{getCustomerName(order)}</strong>
+                    <span className={`status-pill status-${order.status}`}>{order.status}</span>
+                  </div>
+                  <p className="order-summary">{getCompactOrderMeta(order)}</p>
+                  <div className="order-footer">
+                    <span className="order-summary">{getAddressNote(order)}</span>
+                    <strong>{pesoSign}{Number(order.total).toFixed(2)}</strong>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {ordersPageCount > 1 && (
+              <div className="pagination-controls">
+                <button
+                  className="secondary-button"
+                  disabled={ordersPage === 1}
+                  onClick={() => setOrdersPage(ordersPage - 1)}
+                  type="button"
+                >
+                  Previous
+                </button>
+                <span className="pagination-info">Page {ordersPage} of {ordersPageCount}</span>
+                <button
+                  className="secondary-button"
+                  disabled={ordersPage === ordersPageCount}
+                  onClick={() => setOrdersPage(ordersPage + 1)}
+                  type="button"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </section>
         </section>
 
       </div>
@@ -443,7 +512,7 @@ export function AdminPanel({
                   <h2>{getCustomerName(selectedOrder)}</h2>
                   <p>Placed {formatDateTime(selectedOrder.created_at)}</p>
                 </div>
-                <button className="secondary-button" onClick={() => setSelectedOrderId(null)} type="button">
+                <button className="tertiary-button" onClick={() => setSelectedOrderId(null)} type="button">
                   Close
                 </button>
               </div>
@@ -500,7 +569,7 @@ export function AdminPanel({
                 </div>
               </div>
 
-              <div className="order-modal-actions">
+              <div className="order-modal-actions action-group">
                 <button
                   className="danger-button"
                   disabled={archiveStatuses.has(selectedOrder.status) || isUpdatingOrder}
@@ -546,7 +615,7 @@ export function AdminPanel({
                   <h2>Archived orders</h2>
                   <p>Accepted, fulfilled, and canceled orders.</p>
                 </div>
-                <button className="secondary-button" onClick={() => setIsArchiveModalOpen(false)} type="button">
+                <button className="tertiary-button" onClick={() => setIsArchiveModalOpen(false)} type="button">
                   Close
                 </button>
               </div>
@@ -572,9 +641,9 @@ export function AdminPanel({
                       <strong>{getCustomerName(order)}</strong>
                       <span className={`status-pill status-${order.status}`}>{order.status}</span>
                     </div>
-                    <p>{getAddressNote(order)} | {order.deliveryWindow || order.delivery_window}</p>
+                    <p className="order-summary">{getCompactOrderMeta(order)}</p>
                     <div className="order-footer">
-                      <span>{order.mobile_number || "No mobile number"}</span>
+                      <span className="order-summary">{getAddressNote(order)}</span>
                       <strong>{pesoSign}{Number(order.total).toFixed(2)}</strong>
                     </div>
                   </button>
@@ -622,7 +691,7 @@ export function AdminPanel({
                   <h2>{selectedProduct.name}</h2>
                   <p>Update product details or delete this item from the database.</p>
                 </div>
-                <button className="secondary-button" onClick={closeProductModal} type="button">
+                <button className="tertiary-button" onClick={closeProductModal} type="button">
                   Close
                 </button>
               </div>
@@ -700,7 +769,7 @@ export function AdminPanel({
                   <option value="kilogram">Per kilogram</option>
                 </select>
 
-                <div className="product-modal-actions">
+                <div className="product-modal-actions action-group-split">
                   <button
                     className="danger-button"
                     disabled={isDeletingProduct || isSavingProduct}
@@ -709,8 +778,8 @@ export function AdminPanel({
                   >
                     {isDeletingProduct ? "Deleting..." : "Delete product"}
                   </button>
-                  <div className="order-modal-actions">
-                    <button className="secondary-button" onClick={closeProductModal} type="button">
+                  <div className="order-modal-actions action-group">
+                    <button className="tertiary-button" onClick={closeProductModal} type="button">
                       Cancel
                     </button>
                     <button className="primary-button" disabled={isSavingProduct || isDeletingProduct} type="submit">

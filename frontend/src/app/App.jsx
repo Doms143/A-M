@@ -461,7 +461,7 @@ export default function App() {
           <nav className="navbar-header">
             <span className="navbar-brand">A&M Sari-Sari Store</span>
             <div className="navbar-actions">
-              <button className="secondary-button" onClick={() => navigate("shop")} type="button">
+              <button className="tertiary-button" onClick={() => navigate("shop")} type="button">
                 Back
               </button>
             </div>
@@ -490,7 +490,7 @@ export default function App() {
               <p>Checking your account and loading inventory data.</p>
             </div>
             <div className="hero-actions">
-              <button className="secondary-button" onClick={() => navigate("shop")} type="button">
+              <button className="tertiary-button" onClick={() => navigate("shop")} type="button">
                 Storefront
               </button>
             </div>
@@ -539,17 +539,20 @@ export default function App() {
           <div className="navbar-actions">
             {!session && isSupabaseConfigured ? (
               <button className="primary-button" onClick={handleSignIn} type="button">
-                Sign In
+                <span className="desktop-only">Sign In</span>
+                <span className="mobile-only">Login</span>
               </button>
             ) : null}
             {session && adminAccount ? (
               <button className="secondary-button" onClick={() => navigate("admin")} type="button">
-                Dashboard
+                <span className="desktop-only">Dashboard</span>
+                <span className="mobile-only">Admin</span>
               </button>
             ) : null}
             {session ? (
-              <button className="secondary-button" onClick={handleSignOut} type="button">
-                Sign out
+              <button className="tertiary-button" onClick={handleSignOut} type="button">
+                <span className="desktop-only">Sign out</span>
+                <span className="mobile-only">Logout</span>
               </button>
             ) : null}
           </div>
@@ -578,11 +581,13 @@ export default function App() {
               </div>
             </div>
           </div>
-          <aside className="hero-panel">
-            <span className="hero-panel-kicker">Order overview</span>
-            <h2>Simple storefront, faster checkout.</h2>
-            <p>Search products, adjust quantities, and place orders from one screen without extra steps.</p>
-          </aside>
+          <div className="storefront-desktop-cart">
+            <CartPanel
+              cart={cart}
+              summary={cartSummary}
+              onUpdateQuantity={updateQuantity}
+            />
+          </div>
         </header>
 
         {error ? <div className="banner banner-error">{error}</div> : null}
@@ -597,11 +602,13 @@ export default function App() {
             onFiltersChange={setFilters}
           />
           <aside className="sidebar-stack">
-            <CartPanel
-              cart={cart}
-              summary={cartSummary}
-              onUpdateQuantity={updateQuantity}
-            />
+            <div className="storefront-mobile-cart">
+              <CartPanel
+                cart={cart}
+                summary={cartSummary}
+                onUpdateQuantity={updateQuantity}
+              />
+            </div>
             <CheckoutPanel
               cart={cart}
               isSubmitting={isSubmitting}

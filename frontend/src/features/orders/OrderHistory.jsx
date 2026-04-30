@@ -1,5 +1,9 @@
 const pesoSign = "\u20b1";
 
+function getCompactOrderMeta(order) {
+  return `${order.delivery_window || "No delivery window"} • ${order.address_note || order.villa_number || "No address note"}`;
+}
+
 export function OrderHistory({ orders }) {
   return (
     <section className="card">
@@ -16,8 +20,11 @@ export function OrderHistory({ orders }) {
               <strong>{order.customer_name || order.guest_name}</strong>
               <span className={`status-pill status-${order.status}`}>{order.status}</span>
             </div>
-            <p>{order.address_note || order.villa_number} | {order.delivery_window}</p>
-            <p>Total: {pesoSign}{Number(order.total).toFixed(2)}</p>
+            <p className="order-summary">{getCompactOrderMeta(order)}</p>
+            <div className="order-footer">
+              <span>{order.mobile_number || "No mobile number"}</span>
+              <strong>{pesoSign}{Number(order.total).toFixed(2)}</strong>
+            </div>
           </article>
         ))}
       </div>

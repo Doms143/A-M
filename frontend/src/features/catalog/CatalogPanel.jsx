@@ -11,6 +11,19 @@ function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
+function getCompactDescription(description) {
+  if (!description) {
+    return "Everyday store essential.";
+  }
+
+  const normalized = description.trim();
+  if (normalized.length <= 68) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 65).trimEnd()}...`;
+}
+
 export function CatalogPanel({
   filters,
   isLoading,
@@ -71,13 +84,12 @@ export function CatalogPanel({
           <article className="product-card" key={product.id}>
             <div className="product-card-top">
               <div className="product-badge">{product.category}</div>
-              <span className="product-tagline">Daily essential</span>
+              <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
             </div>
             <h3>{product.name}</h3>
-            <p>{product.description}</p>
+            <p className="product-summary">{getCompactDescription(product.description)}</p>
             <div className="product-footer">
               <strong>{pesoSign}{product.price.toFixed(2)}</strong>
-              <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
               <button className="primary-button" onClick={() => onAddToCart(product)} type="button">
                 Add to cart
               </button>
