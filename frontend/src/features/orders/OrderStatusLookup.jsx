@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 
 const pesoSign = "\u20b1";
 
-function getOrderReference(orderId) {
-  if (!orderId) {
+function getOrderReference(order) {
+  if (order?.reference_code) {
+    return order.reference_code;
+  }
+
+  if (!order?.id) {
     return "";
   }
 
-  return orderId.slice(0, 8).toUpperCase();
+  return order.id.slice(0, 8).toUpperCase();
 }
 
 function formatDateTime(value) {
@@ -25,9 +29,9 @@ function formatDateTime(value) {
   }
 }
 
-export function OrderStatusLookup({ initialOrder, onLookup }) {
+export function OrderStatusLookup({ initialOrder, onLookup, onRepeatOrder }) {
   const [formState, setFormState] = useState({
-    reference: getOrderReference(initialOrder?.id),
+    reference: getOrderReference(initialOrder),
     mobileNumber: initialOrder?.mobile_number || ""
   });
   const [lookupOrder, setLookupOrder] = useState(initialOrder || null);
@@ -41,7 +45,7 @@ export function OrderStatusLookup({ initialOrder, onLookup }) {
 
     setLookupOrder(initialOrder);
     setFormState({
-      reference: getOrderReference(initialOrder.id),
+      reference: getOrderReference(initialOrder),
       mobileNumber: initialOrder.mobile_number || ""
     });
   }, [initialOrder]);
@@ -52,7 +56,7 @@ export function OrderStatusLookup({ initialOrder, onLookup }) {
     const mobileNumber = formState.mobileNumber.trim();
 
     if (reference.length < 8 || !/^09\d{9}$/.test(mobileNumber)) {
-      setMessage("Enter the 8-character reference and the 09 mobile number used for the order.");
+      setMessage("Enter the order reference and the 09 mobile number used for the order.");
       return;
     }
 
@@ -75,8 +79,13 @@ export function OrderStatusLookup({ initialOrder, onLookup }) {
       <div className="section-header compact">
         <div>
           <h2>Track order</h2>
-          <p>Check the latest status using your order reference and mobile number.</p>
+          <p>Check the latest status using your saved order reference and mobile number.</p>
         </div>
+      </div>
+
+      <div className="order-status-helper">
+        <strong>Keep your reference after ordering.</strong>
+        <p>It is the fastest way to check if your order is still pending, accepted, completed, or cancelled.</p>
       </div>
 
       <form className="order-status-form" onSubmit={handleSubmit}>
@@ -84,13 +93,13 @@ export function OrderStatusLookup({ initialOrder, onLookup }) {
           <span className="field-label">Reference</span>
           <input
             className="text-input"
-            maxLength={8}
-            placeholder="AB12CD34"
+            maxLength={16}
+            placeholder="AM-260430-A1B2"
             value={formState.reference}
             onChange={(event) =>
               setFormState((current) => ({
                 ...current,
-                reference: event.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase()
+                reference: event.target.value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 16).toUpperCase()
               }))
             }
           />
@@ -120,20 +129,29 @@ export function OrderStatusLookup({ initialOrder, onLookup }) {
       {message ? <div className="banner banner-error order-status-message">{message}</div> : null}
 
       {lookupOrder ? (
-        <div className="order-status-result">
-          <div>
-            <span className="field-label">Status</span>
-            <strong className={`status-pill status-${lookupOrder.status}`}>{lookupOrder.status}</strong>
+        <>
+          <div className="order-status-result">
+            <div>
+              <span className="field-label">Status</span>
+              <strong className={`status-pill status-${lookupOrder.status}`}>{lookupOrder.status}</strong>
+            </div>
+            <div>
+              <span className="field-label">Placed</span>
+              <strong>{formatDateTime(lookupOrder.created_at)}</strong>
+            </div>
+            <div>
+              <span className="field-label">Total</span>
+              <strong>{pesoSign}{Number(lookupOrder.total || 0).toFixed(2)}</strong>
+            </div>
           </div>
-          <div>
-            <span className="field-label">Placed</span>
-            <strong>{formatDateTime(lookupOrder.created_at)}</strong>
-          </div>
-          <div>
-            <span className="field-label">Total</span>
-            <strong>{pesoSign}{Number(lookupOrder.total || 0).toFixed(2)}</strong>
-          </div>
-        </div>
+          {onRepeatOrder ? (
+            <div className="order-status-actions">
+              <button className="primary-button" onClick={() => onRepeatOrder(lookupOrder)} type="button">
+                Repeat this order
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </section>
   );

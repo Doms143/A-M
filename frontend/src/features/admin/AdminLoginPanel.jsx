@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export function AdminLoginPanel({ isSigningIn, onSubmit }) {
+export function AdminLoginPanel({ error, isSigningIn, onSubmit }) {
   const [formState, setFormState] = useState({
     email: "",
     password: ""
@@ -19,6 +19,12 @@ export function AdminLoginPanel({ isSigningIn, onSubmit }) {
           <p>Enter your credentials</p>
         </div>
       </div>
+
+      {error ? (
+        <div className="login-error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <form className="checkout-form" onSubmit={handleSubmit}>
         <label className="field-block">

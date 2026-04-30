@@ -7,11 +7,18 @@ const initialProductForm = {
   description: "",
   price: "",
   pricingUnit: "piece",
-  isActive: true
+  isActive: true,
+  stockQuantity: 0
 };
 
 const defaultCategories = ["refreshments", "wellness", "housekeeping"];
 const pesoSign = "\u20b1";
+const orderTimelineLabels = {
+  pending: "Order placed",
+  confirmed: "Order accepted",
+  fulfilled: "Order fulfilled",
+  cancelled: "Order cancelled"
+};
 
 function getCustomerName(order) {
   return order.customer_name || order.guest_name || "Unknown customer";
@@ -19,6 +26,18 @@ function getCustomerName(order) {
 
 function getAddressNote(order) {
   return order.address_note || order.villa_number || "No address note";
+}
+
+function getOrderReference(order) {
+  if (order?.reference_code) {
+    return order.reference_code;
+  }
+
+  if (!order?.id) {
+    return "Pending";
+  }
+
+  return String(order.id).slice(0, 8).toUpperCase();
 }
 
 function getPricingUnitLabel(pricingUnit) {
@@ -39,7 +58,7 @@ function getCompactDescription(description) {
 }
 
 function getCompactOrderMeta(order) {
-  return `${order.mobile_number || "No mobile"} | ${order.deliveryWindow || order.delivery_window || "No window"}`;
+  return `${getOrderReference(order)} | ${order.mobile_number || "No mobile"} | ${order.deliveryWindow || order.delivery_window || "No window"}`;
 }
 
 function formatDateTime(value) {
@@ -57,6 +76,38 @@ function formatDateTime(value) {
   }
 }
 
+function getOrderTimeline(order) {
+  const history = Array.isArray(order.status_history) ? order.status_history : [];
+  if (history.length > 0) {
+    return history.map((event, index) => ({
+      id: `${event.status || "event"}-${event.timestamp || index}`,
+      label: event.label || orderTimelineLabels[event.status] || "Order updated",
+      status: event.status || "updated",
+      timestamp: event.timestamp || order.created_at
+    }));
+  }
+
+  const timeline = [
+    {
+      id: "placed",
+      label: orderTimelineLabels.pending,
+      status: "pending",
+      timestamp: order.created_at
+    }
+  ];
+
+  if (order.status && order.status !== "pending") {
+    timeline.push({
+      id: order.status,
+      label: orderTimelineLabels[order.status] || "Order updated",
+      status: order.status,
+      timestamp: order.status_updated_at || order.created_at
+    });
+  }
+
+  return timeline;
+}
+
 function buildProductFormState(product) {
   return {
     id: product.id,
@@ -65,7 +116,8 @@ function buildProductFormState(product) {
     description: product.description ?? "",
     price: product.price ?? "",
     pricingUnit: product.pricing_unit ?? "piece",
-    isActive: product.is_active ?? true
+    isActive: product.is_active ?? true,
+    stockQuantity: product.stock_quantity ?? 0
   };
 }
 
@@ -113,7 +165,7 @@ export function AdminPanel({
         orderStatusFilter === "all" || order.status === orderStatusFilter;
       const queryMatch =
         !normalizedQuery ||
-        `${getCustomerName(order)} ${getAddressNote(order)} ${order.mobile_number || ""} ${order.id || ""}`
+        `${getCustomerName(order)} ${getAddressNote(order)} ${order.mobile_number || ""} ${getOrderReference(order)} ${order.id || ""}`
           .toLowerCase()
           .includes(normalizedQuery);
 
@@ -383,6 +435,18 @@ export function AdminPanel({
                   <option value="piece">Per piece</option>
                   <option value="kilogram">Per kilogram</option>
                 </select>
+                <input
+                  className="text-input"
+                  min="0"
+                  placeholder="Stock quantity"
+                  required
+                  step="1"
+                  type="number"
+                  value={formState.stockQuantity}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, stockQuantity: event.target.value }))
+                  }
+                />
                 <label className="toggle-row">
                   <input
                     checked={formState.isActive}
@@ -439,7 +503,9 @@ export function AdminPanel({
                   <p className="product-summary">{getCompactDescription(product.description)}</p>
                   <div className="product-footer">
                     <strong>{pesoSign}{Number(product.price).toFixed(2)}</strong>
-                    <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
+                    <span className="product-tagline">
+                      {Number(product.stock_quantity ?? 0)} in stock
+                    </span>
                   </div>
                 </button>
               ))}
@@ -594,7 +660,7 @@ export function AdminPanel({
               <div className="order-detail-grid">
                 <div className="order-detail-card">
                   <span className="field-label">Reference</span>
-                  <strong>{String(selectedOrder.id || "").slice(0, 8).toUpperCase()}</strong>
+                  <strong>{getOrderReference(selectedOrder)}</strong>
                 </div>
                 <div className="order-detail-card">
                   <span className="field-label">Mobile number</span>
@@ -611,6 +677,21 @@ export function AdminPanel({
                 <div className="order-detail-card">
                   <span className="field-label">Status</span>
                   <strong>{selectedOrder.status}</strong>
+                </div>
+              </div>
+
+              <div className="order-detail-block order-timeline-block">
+                <h3>Order timeline</h3>
+                <div className="order-timeline">
+                  {getOrderTimeline(selectedOrder).map((event) => (
+                    <div className="order-timeline-item" key={event.id}>
+                      <span className={`order-timeline-dot status-${event.status}`} />
+                      <div>
+                        <strong>{event.label}</strong>
+                        <p>{formatDateTime(event.timestamp)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -846,6 +927,18 @@ export function AdminPanel({
                   <option value="piece">Per piece</option>
                   <option value="kilogram">Per kilogram</option>
                 </select>
+                <input
+                  className="text-input"
+                  min="0"
+                  placeholder="Stock quantity"
+                  required
+                  step="1"
+                  type="number"
+                  value={editFormState.stockQuantity}
+                  onChange={(event) =>
+                    setEditFormState((current) => ({ ...current, stockQuantity: event.target.value }))
+                  }
+                />
                 <label className="toggle-row">
                   <input
                     checked={editFormState.isActive}

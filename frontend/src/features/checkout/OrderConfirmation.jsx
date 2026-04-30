@@ -8,20 +8,33 @@ function getAddressNote(order) {
   return order.address_note || order.villa_number || "No address note";
 }
 
-function getOrderReference(orderId) {
-  if (!orderId) {
+function getOrderReference(order) {
+  if (order?.reference_code) {
+    return order.reference_code;
+  }
+
+  if (!order?.id) {
     return "Pending";
   }
 
-  return orderId.slice(0, 8).toUpperCase();
+  return order.id.slice(0, 8).toUpperCase();
 }
 
 function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
-export function OrderConfirmation({ order }) {
+export function OrderConfirmation({ onRepeatOrder, order }) {
   const items = order.items || [];
+  const reference = getOrderReference(order);
+
+  async function copyReference() {
+    if (!navigator.clipboard) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(reference);
+  }
 
   return (
     <section className="card order-confirmation-card" aria-live="polite">
@@ -29,11 +42,29 @@ export function OrderConfirmation({ order }) {
         <div>
           <span className="eyebrow">Order placed</span>
           <h2>Thanks, {getCustomerName(order)}.</h2>
-          <p>Reference #{getOrderReference(order.id)} is now waiting for store review.</p>
+          <p>Reference #{reference} is now waiting for store review.</p>
         </div>
         <span className={`status-pill status-${order.status || "pending"}`}>
           {order.status || "pending"}
         </span>
+      </div>
+
+      <div className="order-reference-notice">
+        <div>
+          <span className="field-label">Save this reference</span>
+          <strong>#{reference}</strong>
+          <p>Use this with your mobile number to track the order. The store may contact you through the mobile number you provided.</p>
+        </div>
+        <div className="order-reference-actions">
+          <button className="secondary-button" onClick={copyReference} type="button">
+            Copy reference
+          </button>
+          {onRepeatOrder ? (
+            <button className="primary-button" onClick={() => onRepeatOrder(order)} type="button">
+              Repeat order
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="order-confirmation-grid">
@@ -78,6 +109,11 @@ export function OrderConfirmation({ order }) {
           <p>{order.notes}</p>
         </div>
       ) : null}
+
+      <div className="order-next-steps">
+        <span className="field-label">What happens next</span>
+        <p>Keep your phone available. Your order stays pending until the store reviews it, then the status page will update when it is accepted or cancelled.</p>
+      </div>
     </section>
   );
 }

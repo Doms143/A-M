@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from flask import Blueprint, request
 
 from ..._lib.auth import require_admin
@@ -5,6 +7,12 @@ from ..._lib.response import json_response
 from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 
 admin_bp = Blueprint("admin", __name__)
+STATUS_LABELS = {
+    "pending": "Order placed",
+    "confirmed": "Order accepted",
+    "fulfilled": "Order fulfilled",
+    "cancelled": "Order cancelled",
+}
 
 
 def _clean_text(value):
@@ -23,6 +31,18 @@ def _clean_bool(value, default=True):
     return bool(value)
 
 
+def _clean_stock_quantity(value):
+    try:
+        stock_quantity = int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Stock quantity must be a whole number.") from None
+
+    if stock_quantity < 0:
+        raise ValueError("Stock quantity cannot be negative.")
+
+    return stock_quantity
+
+
 def _require_supabase():
     if not is_supabase_configured(use_service_role=True):
         raise RuntimeError("Supabase service role configuration is missing.")
@@ -36,6 +56,7 @@ def _validate_product(payload):
     description = _clean_text(payload.get("description"))
     pricing_unit = _clean_text(payload.get("pricingUnit") or payload.get("pricing_unit")).lower() or "piece"
     raw_price = payload.get("price")
+    raw_stock_quantity = payload.get("stockQuantity", payload.get("stock_quantity", 0))
 
     if not name:
         raise ValueError("Product name is required.")
@@ -63,6 +84,7 @@ def _validate_product(payload):
         "price": price,
         "pricing_unit": pricing_unit,
         "is_active": _clean_bool(payload.get("isActive", payload.get("is_active")), True),
+        "stock_quantity": _clean_stock_quantity(raw_stock_quantity),
     }
 
 
@@ -101,12 +123,48 @@ def update_admin_order(_user, order_id):
 
     try:
         supabase = _require_supabase()
-        result = (
-            supabase.table("orders")
-            .update({"status": next_status})
-            .eq("id", order_id)
-            .execute()
-        )
+        timestamp = datetime.now(timezone.utc).isoformat()
+        try:
+            current_result = (
+                supabase.table("orders")
+                .select("status_history")
+                .eq("id", order_id)
+                .limit(1)
+                .execute()
+            )
+            current_order = current_result.data[0] if current_result.data else {}
+            current_history = current_order.get("status_history") or []
+            if not isinstance(current_history, list):
+                current_history = []
+
+            next_history = [
+                *current_history,
+                {
+                    "status": next_status,
+                    "timestamp": timestamp,
+                    "label": STATUS_LABELS.get(next_status, next_status.title()),
+                },
+            ]
+            update_payload = {
+                "status": next_status,
+                "status_history": next_history,
+                "status_updated_at": timestamp,
+            }
+            result = (
+                supabase.table("orders")
+                .update(update_payload)
+                .eq("id", order_id)
+                .execute()
+            )
+        except Exception as error:
+            if "schema cache" not in str(error):
+                raise
+            result = (
+                supabase.table("orders")
+                .update({"status": next_status})
+                .eq("id", order_id)
+                .execute()
+            )
         if not result.data:
             return json_response({"error": "Order not found."}, 404)
         return json_response({"order": result.data[0]})
@@ -158,11 +216,23 @@ def admin_products(_user):
 
     try:
         product = _validate_product(payload)
-        result = (
-            supabase.table("products")
-            .upsert(product, on_conflict="id")
-            .execute()
-        )
+        try:
+            result = (
+                supabase.table("products")
+                .upsert(product, on_conflict="id")
+                .execute()
+            )
+        except Exception as error:
+            if "schema cache" not in str(error):
+                raise
+            legacy_product = {
+                key: value for key, value in product.items() if key != "stock_quantity"
+            }
+            result = (
+                supabase.table("products")
+                .upsert(legacy_product, on_conflict="id")
+                .execute()
+            )
         return json_response({"product": result.data[0]}, 201)
     except ValueError as error:
         return json_response({"error": str(error)}, 400)

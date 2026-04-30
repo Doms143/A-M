@@ -24,6 +24,10 @@ function getCompactDescription(description) {
   return `${normalized.slice(0, 65).trimEnd()}...`;
 }
 
+function getStockQuantity(product) {
+  return Number(product.stock_quantity ?? 0);
+}
+
 function CatalogSkeletonGrid() {
   return (
     <div className="product-grid skeleton-grid" aria-hidden="true">
@@ -107,22 +111,34 @@ export function CatalogPanel({
 
       {!isLoading ? (
         <div className="product-grid">
-          {products.map((product) => (
-            <article className="product-card" key={product.id}>
-              <div className="product-card-top">
-                <div className="product-badge">{product.category}</div>
-                <span className="product-tagline">{getPricingUnitLabel(product.pricing_unit)}</span>
-              </div>
-              <h3>{product.name}</h3>
-              <p className="product-summary">{getCompactDescription(product.description)}</p>
-              <div className="product-footer">
-                <strong>{pesoSign}{product.price.toFixed(2)}</strong>
-                <button className="primary-button" onClick={() => onAddToCart(product)} type="button">
-                  Add to cart
-                </button>
-              </div>
-            </article>
-          ))}
+          {products.map((product) => {
+            const stockQuantity = getStockQuantity(product);
+            const isOutOfStock = stockQuantity <= 0;
+
+            return (
+              <article className="product-card" key={product.id}>
+                <div className="product-card-top">
+                  <div className="product-badge">{product.category}</div>
+                  <span className={`product-tagline ${isOutOfStock ? "product-tagline-muted" : ""}`}>
+                    {isOutOfStock ? "Out of stock" : `${stockQuantity} left`}
+                  </span>
+                </div>
+                <h3>{product.name}</h3>
+                <p className="product-summary">{getCompactDescription(product.description)}</p>
+                <div className="product-footer">
+                  <strong>{pesoSign}{product.price.toFixed(2)}</strong>
+                  <button
+                    className="primary-button"
+                    disabled={isOutOfStock}
+                    onClick={() => onAddToCart(product)}
+                    type="button"
+                  >
+                    {isOutOfStock ? "Unavailable" : "Add to cart"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : null}
 

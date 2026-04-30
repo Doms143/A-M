@@ -34,12 +34,15 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
   });
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+  const [isReviewingOrder, setIsReviewingOrder] = useState(false);
 
   const validationErrors = getCheckoutErrors(formState);
   const isFormValid = Object.keys(validationErrors).length === 0;
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   function updateField(field, value) {
     setFormState((current) => ({ ...current, [field]: value }));
+    setIsReviewingOrder(false);
     setFormErrors((current) => {
       if (!current[field]) {
         return current;
@@ -59,18 +62,7 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
     return formErrors[field] || (touchedFields[field] ? validationErrors[field] : "");
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (cart.length === 0) {
-      return;
-    }
-
-    const nextErrors = getCheckoutErrors(formState);
-    setFormErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-
+  async function submitOrder() {
     await onSubmit({
       customerName: formState.customerName.trim(),
       mobileNumber: formState.mobileNumber.trim(),
@@ -80,6 +72,28 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
       email: session?.user?.email || "customer@sarisari.local",
       total: summary.total
     });
+    setIsReviewingOrder(false);
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (cart.length === 0) {
+      return;
+    }
+
+    const nextErrors = getCheckoutErrors(formState);
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setIsReviewingOrder(false);
+      return;
+    }
+
+    if (!isReviewingOrder) {
+      setIsReviewingOrder(true);
+      return;
+    }
+
+    await submitOrder();
   }
 
   return (
@@ -161,8 +175,58 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
           <span className="status-pill status-confirmed">Order total</span>
           <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
         </div>
+
+        {isReviewingOrder ? (
+          <div className="checkout-review-card" aria-live="polite">
+            <div className="checkout-review-header">
+              <div>
+                <span className="eyebrow">Review order</span>
+                <h3>Confirm before sending</h3>
+              </div>
+              <strong>{totalItems} item{totalItems === 1 ? "" : "s"}</strong>
+            </div>
+
+            <div className="checkout-review-grid">
+              <div>
+                <span className="field-label">Customer</span>
+                <strong>{formState.customerName.trim()}</strong>
+              </div>
+              <div>
+                <span className="field-label">Mobile</span>
+                <strong>{formState.mobileNumber.trim()}</strong>
+              </div>
+              <div>
+                <span className="field-label">Address / pickup note</span>
+                <strong>{formState.addressNote.trim()}</strong>
+              </div>
+              <div>
+                <span className="field-label">Delivery window</span>
+                <strong>{formState.deliveryWindow}</strong>
+              </div>
+            </div>
+
+            <div className="checkout-review-items">
+              {cart.map((item) => (
+                <div className="checkout-review-row" key={item.id}>
+                  <span>{item.quantity} x {item.name}</span>
+                  <strong>{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="checkout-review-total">
+              <span>Estimated total</span>
+              <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
+            </div>
+          </div>
+        ) : null}
+
         <button className="primary-button" disabled={cart.length === 0 || isSubmitting || !isFormValid} type="submit">
-          {isSubmitting ? "Processing..." : `Place order - ${pesoSign}${summary.total.toFixed(2)}`}
+          {isSubmitting
+            ? "Processing..."
+            : isReviewingOrder
+              ? `Confirm order - ${pesoSign}${summary.total.toFixed(2)}`
+              : `Review order - ${pesoSign}${summary.total.toFixed(2)}`}
         </button>
       </form>
     </section>

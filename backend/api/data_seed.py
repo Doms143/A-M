@@ -6,6 +6,7 @@ CATALOG = [
         "category": "refreshments",
         "price": 18.0,
         "pricing_unit": "piece",
+        "stock_quantity": 24,
     },
     {
         "id": "3in1-coffee",
@@ -14,6 +15,7 @@ CATALOG = [
         "category": "housekeeping",
         "price": 12.0,
         "pricing_unit": "piece",
+        "stock_quantity": 30,
     },
     {
         "id": "canned-sardines",
@@ -22,6 +24,7 @@ CATALOG = [
         "category": "wellness",
         "price": 28.0,
         "pricing_unit": "piece",
+        "stock_quantity": 18,
     },
     {
         "id": "bottled-water",
@@ -30,5 +33,6 @@ CATALOG = [
         "category": "refreshments",
         "price": 15.0,
         "pricing_unit": "piece",
+        "stock_quantity": 36,
     },
 ]

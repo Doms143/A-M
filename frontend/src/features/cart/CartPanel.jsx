@@ -78,29 +78,32 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
         ) : null}
 
         <div className="stack-list cart-items-list">
-          {cart.map((item) => (
-            <div className="cart-row cart-item-card" key={item.id}>
-              <div className="cart-copy">
-                <strong>{item.name}</strong>
-                <p>{pesoSign}{item.price.toFixed(2)} {getPricingUnitLabel(item.pricing_unit)}</p>
-                {item.quantity >= maxQuantity ? (
-                  <span className="cart-limit-note">Limit {maxQuantity} per item</span>
-                ) : null}
+          {cart.map((item) => {
+            const itemLimit = Math.min(maxQuantity, Number(item.stock_quantity ?? maxQuantity));
+            return (
+              <div className="cart-row cart-item-card" key={item.id}>
+                <div className="cart-copy">
+                  <strong>{item.name}</strong>
+                  <p>{pesoSign}{item.price.toFixed(2)} {getPricingUnitLabel(item.pricing_unit)}</p>
+                  {item.quantity >= itemLimit ? (
+                    <span className="cart-limit-note">Limit {itemLimit} available</span>
+                  ) : null}
+                </div>
+                <div className="quantity-control">
+                  <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">-</button>
+                  <span>{item.quantity}</span>
+                  <button
+                    disabled={item.quantity >= itemLimit}
+                    onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                    type="button"
+                  >
+                    +
+                  </button>
+                </div>
+                <strong className="cart-line-total">{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>
               </div>
-              <div className="quantity-control">
-                <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">-</button>
-                <span>{item.quantity}</span>
-                <button
-                  disabled={item.quantity >= maxQuantity}
-                  onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                  type="button"
-                >
-                  +
-                </button>
-              </div>
-              <strong className="cart-line-total">{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="summary-box cart-summary-box">

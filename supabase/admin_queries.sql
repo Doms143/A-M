@@ -38,11 +38,14 @@ where email = 'admin@example.com';
 
 select
   id,
+  reference_code,
   guest_name as customer_name,
   mobile_number,
   villa_number as address_note,
   delivery_window,
   status,
+  status_updated_at,
+  status_history,
   total,
   created_at
 from public.orders
@@ -55,18 +58,20 @@ select
   category,
   price,
   is_active,
+  stock_quantity,
   created_at
 from public.products
 order by created_at desc;
 
-insert into public.products (id, name, description, category, price, is_active)
+insert into public.products (id, name, description, category, price, is_active, stock_quantity)
 values (
   'soy-sauce-sachet',
   'Soy Sauce Sachet',
   'Small daily-use condiment item for a sari-sari store.',
   'refreshments',
   2.50,
-  true
+  true,
+  25
 )
 on conflict (id) do update
 set
@@ -74,4 +79,5 @@ set
   description = excluded.description,
   category = excluded.category,
   price = excluded.price,
-  is_active = excluded.is_active;
+  is_active = excluded.is_active,
+  stock_quantity = excluded.stock_quantity;

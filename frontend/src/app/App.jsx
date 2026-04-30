@@ -298,13 +298,19 @@ export default function App() {
   );
 
   function addToCart(product) {
+    const availableStock = Number(product.stock_quantity ?? 0);
+    const itemLimit = Math.min(MAX_ITEM_QUANTITY, availableStock);
+    if (itemLimit <= 0) {
+      return;
+    }
+
     setLastOrder(null);
     setCart((currentCart) => {
       const existing = currentCart.find((item) => item.id === product.id);
       if (existing) {
         return currentCart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: Math.min(MAX_ITEM_QUANTITY, item.quantity + 1) }
+            ? { ...item, quantity: Math.min(itemLimit, item.quantity + 1) }
             : item
         );
       }
@@ -316,13 +322,54 @@ export default function App() {
   function updateQuantity(productId, nextQuantity) {
     setCart((currentCart) =>
       currentCart
-        .map((item) =>
-          item.id === productId
-            ? { ...item, quantity: Math.min(MAX_ITEM_QUANTITY, Math.max(0, nextQuantity)) }
-            : item
-        )
+        .map((item) => {
+          if (item.id !== productId) {
+            return item;
+          }
+
+          const availableStock = Number(item.stock_quantity ?? 0);
+          const itemLimit = Math.min(MAX_ITEM_QUANTITY, availableStock);
+          return { ...item, quantity: Math.min(itemLimit, Math.max(0, nextQuantity)) };
+        })
         .filter((item) => item.quantity > 0)
     );
+  }
+
+  function repeatOrder(order) {
+    const orderItems = order?.items || [];
+    if (orderItems.length === 0) {
+      return;
+    }
+
+    const nextCartItems = orderItems
+      .map((item) => {
+        const product = products.find((candidate) => candidate.id === item.product_id);
+        if (!product) {
+          return null;
+        }
+
+        const availableStock = Number(product.stock_quantity ?? 0);
+        const itemLimit = Math.min(MAX_ITEM_QUANTITY, availableStock);
+        const quantity = Math.min(itemLimit, Number(item.quantity || 0));
+        if (quantity <= 0) {
+          return null;
+        }
+
+        return { ...product, quantity };
+      })
+      .filter(Boolean);
+
+    if (nextCartItems.length === 0) {
+      setError("Unable to repeat this order because the items are unavailable or out of stock.");
+      return;
+    }
+
+    setError("");
+    setLastOrder(null);
+    setCart(nextCartItems);
+    window.requestAnimationFrame(() => {
+      document.querySelector(".cart-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   async function handleOrderSubmit(customerDetails) {
@@ -338,7 +385,9 @@ export default function App() {
 
       const orderResponse = await createOrder(payload, session?.access_token);
       const checkoutResponse = await createCheckoutSession(orderResponse.order, session?.access_token);
+      const catalogResponse = await getCatalog();
       setCart([]);
+      setProducts(catalogResponse.products ?? []);
       setLastOrder(orderResponse.order);
       setCheckoutMessage(checkoutResponse.message);
       refreshAdminOrders().catch(() => {});
@@ -499,8 +548,8 @@ export default function App() {
           </nav>
 
           <div className="signin-container">
-            {error ? <div className="banner banner-error">{error}</div> : null}
             <AdminLoginPanel
+              error={error}
               isSigningIn={isSigningIn}
               onSubmit={handleAdminSignIn}
             />
@@ -644,8 +693,12 @@ export default function App() {
 
         {error ? <div className="banner banner-error">{error}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
-        {lastOrder ? <OrderConfirmation order={lastOrder} /> : null}
-        <OrderStatusLookup initialOrder={lastOrder} onLookup={getOrderStatus} />
+        {lastOrder ? <OrderConfirmation order={lastOrder} onRepeatOrder={repeatOrder} /> : null}
+        <OrderStatusLookup
+          initialOrder={lastOrder}
+          onLookup={getOrderStatus}
+          onRepeatOrder={repeatOrder}
+        />
 
         <main className="dashboard-grid">
           <CatalogPanel

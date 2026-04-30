@@ -11,7 +11,14 @@ DELIVERY_WINDOWS = {
     "within 1 hour",
     "schedule for later",
 }
-LEGACY_ORDER_COLUMNS = {"contact_email", "mobile_number", "subtotal"}
+LEGACY_ORDER_COLUMNS = {
+    "contact_email",
+    "mobile_number",
+    "subtotal",
+    "reference_code",
+    "status_history",
+    "status_updated_at",
+}
 MAX_ITEM_QUANTITY = 20
 MOBILE_NUMBER_PATTERN = re.compile(r"^09\d{9}$")
 
@@ -71,7 +78,7 @@ def _get_catalog():
         supabase = get_supabase_client(use_service_role=True)
         result = (
             supabase.table("products")
-            .select("id, name, price, pricing_unit, is_active")
+            .select("id, name, price, pricing_unit, is_active, stock_quantity")
             .eq("is_active", True)
             .execute()
         )
@@ -79,6 +86,12 @@ def _get_catalog():
         return products or CATALOG
     except Exception:
         return CATALOG
+
+
+def generate_reference_code():
+    today = datetime.now(timezone.utc).strftime("%y%m%d")
+    suffix = uuid.uuid4().hex[:4].upper()
+    return f"AM-{today}-{suffix}"
 
 
 def build_order(customer_details, items):
@@ -100,6 +113,11 @@ def build_order(customer_details, items):
         if quantity > MAX_ITEM_QUANTITY:
             raise ValueError(f"Each item is limited to {MAX_ITEM_QUANTITY} per order.")
 
+        stock_quantity = product.get("stock_quantity")
+        if stock_quantity is not None and quantity > int(stock_quantity):
+            available = max(0, int(stock_quantity))
+            raise ValueError(f"{product['name']} only has {available} left in stock.")
+
         line_total = product["price"] * quantity
         subtotal += line_total
         normalized_items.append(
@@ -117,8 +135,10 @@ def build_order(customer_details, items):
         raise ValueError("Your cart does not contain any valid items.")
 
     user = optional_user()
+    created_at = datetime.now(timezone.utc).isoformat()
     return {
         "id": str(uuid.uuid4()),
+        "reference_code": generate_reference_code(),
         "user_id": user.get("sub") if user else None,
         "guest_name": normalized_customer_details["guest_name"],
         "mobile_number": normalized_customer_details["mobile_number"],
@@ -127,11 +147,48 @@ def build_order(customer_details, items):
         "notes": normalized_customer_details["notes"],
         "contact_email": normalized_customer_details["contact_email"],
         "status": "pending",
+        "status_history": [{"status": "pending", "timestamp": created_at, "label": "Order placed"}],
+        "status_updated_at": created_at,
         "subtotal": round(subtotal, 2),
         "total": round(subtotal, 2),
         "items": normalized_items,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": created_at,
     }
+
+
+def decrement_product_stock(items):
+    supabase = get_supabase_client(use_service_role=True)
+
+    for item in items:
+        product_id = item.get("product_id")
+        quantity = int(item.get("quantity", 0))
+        if not product_id or quantity <= 0:
+            continue
+
+        try:
+            product_result = (
+                supabase.table("products")
+                .select("stock_quantity")
+                .eq("id", product_id)
+                .limit(1)
+                .execute()
+            )
+        except Exception as error:
+            if "schema cache" in str(error):
+                return
+            raise
+        if not product_result.data:
+            raise RuntimeError(f"Product {product_id} was not found while updating stock.")
+
+        current_stock = product_result.data[0].get("stock_quantity")
+        if current_stock is None:
+            continue
+
+        next_stock = int(current_stock) - quantity
+        if next_stock < 0:
+            raise ValueError(f"Insufficient stock for {item.get('name', 'item')}.")
+
+        supabase.table("products").update({"stock_quantity": next_stock}).eq("id", product_id).execute()
 
 
 def persist_order(order):
@@ -142,6 +199,7 @@ def persist_order(order):
     try:
         result = supabase.table("orders").insert(order).execute()
         if result.data:
+            decrement_product_stock(order.get("items", []))
             return result.data[0]
     except Exception as error:
         message = str(error)
@@ -153,6 +211,7 @@ def persist_order(order):
         }
         result = supabase.table("orders").insert(legacy_order).execute()
         if result.data:
+            decrement_product_stock(order.get("items", []))
             inserted_order = result.data[0]
             inserted_order.setdefault("contact_email", order.get("contact_email"))
             inserted_order.setdefault("mobile_number", order.get("mobile_number"))
@@ -170,6 +229,7 @@ def persist_order(order):
         raise RuntimeError("Order was not persisted to Supabase.")
 
     persisted_order = result.data[0]
+    decrement_product_stock(order.get("items", []))
     persisted_order.setdefault("contact_email", order.get("contact_email"))
     persisted_order.setdefault("mobile_number", order.get("mobile_number"))
     persisted_order.setdefault("subtotal", order.get("subtotal"))
