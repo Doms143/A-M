@@ -68,6 +68,9 @@ export function CatalogPanel({
           <h2>Online grocery catalog</h2>
           <p>Browse groceries, daily essentials, snacks, canned goods, and household basics.</p>
         </div>
+      </div>
+
+      <div className="catalog-sticky-search">
         <div className="catalog-toolbar">
           <input
             className="text-input"
@@ -81,6 +84,27 @@ export function CatalogPanel({
       </div>
 
       <div className="catalog-filter-bar">
+        <details className="mobile-filter-panel">
+          <summary>
+            <span>Filter category</span>
+            <strong>{categoryOptions.find((option) => option.value === filters.category)?.label || "All items"}</strong>
+          </summary>
+          <div className="filter-chip-row" role="tablist" aria-label="Mobile product categories">
+            {categoryOptions.map((option) => (
+              <button
+                aria-pressed={filters.category === option.value}
+                className={`filter-chip ${filters.category === option.value ? "filter-chip-active" : ""}`}
+                key={option.value}
+                onClick={() =>
+                  onFiltersChange((current) => ({ ...current, category: option.value }))
+                }
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </details>
         <div className="filter-chip-row" role="tablist" aria-label="Product categories">
           {categoryOptions.map((option) => (
             <button

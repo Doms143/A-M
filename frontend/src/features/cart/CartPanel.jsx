@@ -9,13 +9,11 @@ function getPricingUnitLabel(pricingUnit) {
 export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity }) {
   const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartCardRef = useRef(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [summaryMode, setSummaryMode] = useState("floating");
 
-  function scrollToCart() {
-    cartCardRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+  function openCartSheet() {
+    setIsSheetOpen(true);
   }
 
   useEffect(() => {
@@ -56,12 +54,22 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
     };
   }, []);
 
-  return (
-    <>
-      <section
-        className={`card cart-card cart-card-sticky ${summaryMode === "docked" ? "cart-card-summary-docked" : "cart-card-summary-floating"}`}
-        ref={cartCardRef}
-      >
+  useEffect(() => {
+    if (!isSheetOpen) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isSheetOpen]);
+
+  function renderCartContent({ isSheet = false } = {}) {
+    return (
+      <>
         <div className="section-header compact">
           <div>
             <h2>Cart</h2>
@@ -77,7 +85,7 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
           </div>
         ) : null}
 
-        <div className="stack-list cart-items-list">
+        <div className={`stack-list cart-items-list ${isSheet ? "cart-items-list-sheet" : ""}`}>
           {cart.map((item) => {
             const itemLimit = Math.min(maxQuantity, Number(item.stock_quantity ?? maxQuantity));
             return (
@@ -116,6 +124,17 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
             <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
           </div>
         </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <section
+        className={`card cart-card cart-card-sticky ${summaryMode === "docked" ? "cart-card-summary-docked" : "cart-card-summary-floating"}`}
+        ref={cartCardRef}
+      >
+        {renderCartContent()}
 
         {summaryMode === "docked" ? (
           <div className="mobile-cart-summary mobile-cart-summary-docked">
@@ -133,16 +152,37 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
         <button
           aria-label={`View cart, ${totalUnits} item${totalUnits === 1 ? "" : "s"}, total ${pesoSign}${summary.total.toFixed(2)}`}
           className="mobile-cart-summary mobile-cart-summary-floating"
-          onClick={scrollToCart}
+          onClick={openCartSheet}
           type="button"
         >
-          <div className="mobile-cart-summary-copy">
+          <div className="mobile-cart-bubble-icon" aria-hidden="true">
+            <span>Cart</span>
+            <strong>{totalUnits}</strong>
+          </div>
+          <div className="mobile-cart-summary-copy mobile-cart-bubble-copy">
             <strong>{totalUnits} item{totalUnits === 1 ? "" : "s"}</strong>
             <span>
               <strong className="mobile-cart-summary-copy-total">Total {pesoSign}{summary.total.toFixed(2)}</strong>
             </span>
           </div>
         </button>
+      ) : null}
+
+      {isSheetOpen ? (
+        <div className="cart-sheet-backdrop" onClick={() => setIsSheetOpen(false)} role="presentation">
+          <section
+            aria-modal="true"
+            className="cart-sheet"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="cart-sheet-handle" aria-hidden="true" />
+            <button className="tertiary-button cart-sheet-close" onClick={() => setIsSheetOpen(false)} type="button">
+              Close
+            </button>
+            {renderCartContent({ isSheet: true })}
+          </section>
+        </div>
       ) : null}
     </>
   );
