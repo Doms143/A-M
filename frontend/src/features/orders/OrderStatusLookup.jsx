@@ -85,7 +85,7 @@ export function OrderStatusLookup({ initialOrder, onLookup, onRepeatOrder }) {
 
       <div className="order-status-helper">
         <strong>Keep your reference after ordering.</strong>
-        <p>It is the fastest way to check if your order is still pending, accepted, completed, or cancelled.</p>
+        <p>It is the fastest way to check if your order is pending, accepted, preparing, ready, completed, or cancelled.</p>
       </div>
 
       <form className="order-status-form" onSubmit={handleSubmit}>

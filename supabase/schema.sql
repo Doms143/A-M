@@ -42,9 +42,9 @@ create index if not exists admin_accounts_active_idx on public.admin_accounts (i
 
 insert into public.products (id, name, description, category, price, pricing_unit, is_active, stock_quantity)
 values
-  ('instant-noodles', 'Instant Noodles', 'Quick merienda staple for a sari-sari store shelf.', 'refreshments', 18.00, 'piece', true, 24),
+  ('instant-noodles', 'Instant Noodles', 'Quick merienda staple for an online grocery shelf.', 'refreshments', 18.00, 'piece', true, 24),
   ('3in1-coffee', '3-in-1 Coffee Pack', 'Convenient single-serve coffee sachets for daily use.', 'housekeeping', 12.00, 'piece', true, 30),
-  ('canned-sardines', 'Canned Sardines', 'Affordable pantry essential commonly stocked in sari-sari stores.', 'wellness', 28.00, 'piece', true, 18),
+  ('canned-sardines', 'Canned Sardines', 'Affordable pantry essential commonly stocked in online grocery stores.', 'wellness', 28.00, 'piece', true, 18),
   ('bottled-water', 'Bottled Water', 'Everyday drinking water for quick neighborhood purchases.', 'refreshments', 15.00, 'piece', true, 36)
 on conflict (id) do update
 set
@@ -85,7 +85,7 @@ create unique index if not exists orders_reference_code_key on public.orders (re
 alter table public.orders drop constraint if exists orders_status_check;
 alter table public.orders
 add constraint orders_status_check
-check (status in ('pending', 'confirmed', 'fulfilled', 'cancelled'));
+check (status in ('pending', 'accepted', 'preparing', 'ready', 'completed', 'cancelled'));
 
 create index if not exists orders_user_id_idx on public.orders (user_id);
 create index if not exists orders_created_at_idx on public.orders (created_at desc);

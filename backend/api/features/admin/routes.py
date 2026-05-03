@@ -9,8 +9,10 @@ from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 admin_bp = Blueprint("admin", __name__)
 STATUS_LABELS = {
     "pending": "Order placed",
-    "confirmed": "Order accepted",
-    "fulfilled": "Order fulfilled",
+    "accepted": "Order accepted",
+    "preparing": "Order preparing",
+    "ready": "Order ready",
+    "completed": "Order completed",
     "cancelled": "Order cancelled",
 }
 
@@ -116,7 +118,7 @@ def update_admin_order(_user, order_id):
 
     payload = request.get_json(silent=True) or {}
     next_status = _clean_text(payload.get("status")).lower()
-    allowed_statuses = {"pending", "confirmed", "fulfilled", "cancelled"}
+    allowed_statuses = {"pending", "accepted", "preparing", "ready", "completed", "cancelled"}
 
     if next_status not in allowed_statuses:
         return json_response({"error": "A valid order status is required."}, 400)

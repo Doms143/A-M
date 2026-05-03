@@ -65,8 +65,8 @@ export function CatalogPanel({
     <section className="card catalog-card" aria-busy={isLoading}>
       <div className="section-header catalog-header">
         <div>
-          <h2>Sari-sari catalog</h2>
-          <p>Browse daily essentials, snacks, canned goods, sachets, and household basics.</p>
+          <h2>Online grocery catalog</h2>
+          <p>Browse groceries, daily essentials, snacks, canned goods, and household basics.</p>
         </div>
         <div className="catalog-toolbar">
           <input

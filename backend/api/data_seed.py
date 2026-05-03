@@ -2,7 +2,7 @@ CATALOG = [
     {
         "id": "instant-noodles",
         "name": "Instant Noodles",
-        "description": "Quick merienda staple for a sari-sari store shelf.",
+        "description": "Quick merienda staple for an online grocery shelf.",
         "category": "refreshments",
         "price": 18.0,
         "pricing_unit": "piece",
@@ -20,7 +20,7 @@ CATALOG = [
     {
         "id": "canned-sardines",
         "name": "Canned Sardines",
-        "description": "Affordable pantry essential commonly stocked in sari-sari stores.",
+        "description": "Affordable pantry essential commonly stocked in online grocery stores.",
         "category": "wellness",
         "price": 28.0,
         "pricing_unit": "piece",

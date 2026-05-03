@@ -5,10 +5,10 @@ export function AdminDashboard({
   isDeletingProduct,
   isSavingProduct,
   onCreateProduct,
-  onAcceptOrder,
   onCancelOrder,
   onDeleteProduct,
   onSignOut,
+  onUpdateOrderStatus,
   onViewStore,
   isUpdatingOrder,
   orders,
@@ -20,7 +20,7 @@ export function AdminDashboard({
   return (
     <div className="page-shell">
       <nav className="navbar-header">
-        <span className="navbar-brand">A&M Sari-Sari Store</span>
+        <span className="navbar-brand">A&M Online Grocery Store</span>
         <div className="navbar-actions">
           <button className="secondary-button" onClick={onViewStore} type="button">
             <span className="desktop-only">Storefront</span>
@@ -38,7 +38,7 @@ export function AdminDashboard({
           <span className="eyebrow">Admin dashboard</span>
           <h1>Catalog and order controls.</h1>
           <p>
-            Manage sari-sari store products and inspect recent orders straight from Supabase.
+            Manage online grocery products and inspect recent orders straight from Supabase.
             {adminAccount?.email ? ` Signed in as ${adminAccount.email}.` : ""}
           </p>
           <div className="hero-stat-row">
@@ -58,10 +58,10 @@ export function AdminDashboard({
         isDeletingProduct={isDeletingProduct}
         isUpdatingOrder={isUpdatingOrder}
         isSavingProduct={isSavingProduct}
-        onAcceptOrder={onAcceptOrder}
         onCancelOrder={onCancelOrder}
         onCreateProduct={onCreateProduct}
         onDeleteProduct={onDeleteProduct}
+        onUpdateOrderStatus={onUpdateOrderStatus}
         orders={orders}
         products={products}
       />

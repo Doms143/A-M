@@ -1610,8 +1610,25 @@ textarea:focus-visible {
 }
 
 .status-paid,
-.status-confirmed {
+.status-confirmed,
+.status-accepted,
+.status-completed {
   background: rgba(34, 197, 94, 0.18);
+}
+
+.status-preparing {
+  background: rgba(59, 130, 246, 0.16);
+  color: #1d4ed8;
+}
+
+.status-ready {
+  background: rgba(15, 118, 110, 0.16);
+  color: var(--accent-strong);
+}
+
+.status-cancelled {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--warn);
 }
 
 .status-muted {

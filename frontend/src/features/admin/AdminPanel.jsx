@@ -15,9 +15,27 @@ const defaultCategories = ["refreshments", "wellness", "housekeeping"];
 const pesoSign = "\u20b1";
 const orderTimelineLabels = {
   pending: "Order placed",
-  confirmed: "Order accepted",
-  fulfilled: "Order fulfilled",
+  accepted: "Order accepted",
+  preparing: "Order preparing",
+  ready: "Order ready",
+  completed: "Order completed",
   cancelled: "Order cancelled"
+};
+
+const orderStatusOptions = [
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "preparing", label: "Preparing" },
+  { value: "ready", label: "Ready" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" }
+];
+
+const nextStatusByStatus = {
+  pending: { value: "accepted", label: "Accept order" },
+  accepted: { value: "preparing", label: "Start preparing" },
+  preparing: { value: "ready", label: "Mark ready" },
+  ready: { value: "completed", label: "Complete order" }
 };
 
 function getCustomerName(order) {
@@ -126,11 +144,11 @@ export function AdminPanel({
   products,
   onCreateProduct,
   onDeleteProduct,
-  onAcceptOrder,
   onCancelOrder,
   isSavingProduct,
   isDeletingProduct,
-  isUpdatingOrder
+  isUpdatingOrder,
+  onUpdateOrderStatus
 }) {
   const [formState, setFormState] = useState(initialProductForm);
   const [categoryMode, setCategoryMode] = useState("preset");
@@ -150,7 +168,7 @@ export function AdminPanel({
 
   const ordersPerPage = 5;
   const productsPerPage = 6;
-  const archiveStatuses = new Set(["confirmed", "cancelled", "fulfilled"]);
+  const archiveStatuses = new Set(["completed", "cancelled"]);
 
   const activeOrders = useMemo(
     () => orders.filter((order) => !archiveStatuses.has(order.status)),
@@ -272,13 +290,21 @@ export function AdminPanel({
     closeProductModal();
   }
 
-  async function handleAcceptOrder() {
+  async function handleNextOrderStatus() {
     if (!selectedOrder) {
       return;
     }
 
-    await onAcceptOrder(selectedOrder.id);
-    setSelectedOrderId(null);
+    const nextStatus = nextStatusByStatus[selectedOrder.status];
+    if (!nextStatus) {
+      return;
+    }
+
+    await onUpdateOrderStatus(
+      selectedOrder.id,
+      nextStatus.value,
+      `Unable to update order to ${nextStatus.value}.`
+    );
   }
 
   async function handleCancelOrder() {
@@ -552,7 +578,7 @@ export function AdminPanel({
             <div className="section-header compact admin-subcard-header">
               <div>
                 <h2>Orders queue</h2>
-                <p>Review active orders here. Open one to accept or cancel it.</p>
+                <p>Move orders from pending to accepted, preparing, ready, and completed.</p>
               </div>
               <span>{filteredActiveOrders.length} shown</span>
             </div>
@@ -564,7 +590,13 @@ export function AdminPanel({
                 onChange={(event) => updateOrderStatusFilter(event.target.value)}
               >
                 <option value="all">All active statuses</option>
-                <option value="pending">Pending only</option>
+                {orderStatusOptions
+                  .filter((option) => !archiveStatuses.has(option.value))
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} only
+                    </option>
+                  ))}
               </select>
               <input
                 className="text-input"
@@ -637,7 +669,7 @@ export function AdminPanel({
           >
             <section className="card printable-order">
               <div className="print-receipt-header">
-                <strong>A&amp;M Sari-Sari Store</strong>
+                <strong>A&amp;M Online Grocery Store</strong>
                 <span>Order receipt</span>
               </div>
 
@@ -744,14 +776,12 @@ export function AdminPanel({
                 <button
                   className="primary-button"
                   disabled={archiveStatuses.has(selectedOrder.status) || isUpdatingOrder}
-                  onClick={handleAcceptOrder}
+                  onClick={handleNextOrderStatus}
                   type="button"
                 >
                   {isUpdatingOrder
                     ? "Updating..."
-                    : selectedOrder.status === "confirmed"
-                      ? "Order accepted"
-                      : "Accept order"}
+                    : nextStatusByStatus[selectedOrder.status]?.label || "No next status"}
                 </button>
               </div>
             </section>
@@ -772,7 +802,7 @@ export function AdminPanel({
                 <div>
                   <span className="eyebrow">Archives</span>
                   <h2>Archived orders</h2>
-                  <p>Accepted, fulfilled, and canceled orders.</p>
+                  <p>Completed and canceled orders.</p>
                 </div>
                 <button className="tertiary-button" onClick={() => setIsArchiveModalOpen(false)} type="button">
                   Close

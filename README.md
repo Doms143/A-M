@@ -1,10 +1,10 @@
-# A&M Sari-Sari Store
+# A&M Online Grocery Store
 
-React + Vercel Python starter template for a sari-sari store ordering storefront.
+React + Vercel Python starter template for an online grocery ordering storefront.
 
 ## Project profile
 
-- Project Name: A&M Sari-Sari Store
+- Project Name: A&M Online Grocery Store
 - Main Features: Ordering System, Admin Product Management
 - Target Audience: Neighborhood customers ordering daily essentials
 - Technologies: React, JavaScript, Python, Supabase, Vercel

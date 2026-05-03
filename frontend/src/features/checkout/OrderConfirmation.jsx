@@ -112,7 +112,7 @@ export function OrderConfirmation({ onRepeatOrder, order }) {
 
       <div className="order-next-steps">
         <span className="field-label">What happens next</span>
-        <p>Keep your phone available. Your order stays pending until the store reviews it, then the status page will update when it is accepted or cancelled.</p>
+        <p>Keep your phone available. Your order stays pending until the store reviews it, then the status page will update as it moves to accepted, preparing, ready, or completed.</p>
       </div>
     </section>
   );

@@ -67,7 +67,7 @@ insert into public.products (id, name, description, category, price, is_active, 
 values (
   'soy-sauce-sachet',
   'Soy Sauce Sachet',
-  'Small daily-use condiment item for a sari-sari store.',
+  'Small daily-use condiment item for an online grocery store.',
   'refreshments',
   2.50,
   true,

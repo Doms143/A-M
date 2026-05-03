@@ -514,10 +514,6 @@ export default function App() {
     }
   }
 
-  async function handleAcceptOrder(orderId) {
-    return handleOrderStatusUpdate(orderId, "confirmed", "Unable to accept order.");
-  }
-
   async function handleCancelOrder(orderId) {
     return handleOrderStatusUpdate(orderId, "cancelled", "Unable to cancel order.");
   }
@@ -553,7 +549,7 @@ export default function App() {
       <>
         <div className="page-shell">
           <nav className="navbar-header">
-            <span className="navbar-brand">A&M Sari-Sari Store</span>
+            <span className="navbar-brand">A&M Online Grocery Store</span>
             <div className="navbar-actions">
               <button className="tertiary-button" onClick={() => navigate("shop")} type="button">
                 Back
@@ -632,10 +628,10 @@ export default function App() {
           isDeletingProduct={isDeletingProduct}
           isUpdatingOrder={isUpdatingOrder}
           isSavingProduct={isSavingProduct}
-          onAcceptOrder={handleAcceptOrder}
           onCancelOrder={handleCancelOrder}
           onCreateProduct={handleCreateProduct}
           onDeleteProduct={handleDeleteProduct}
+          onUpdateOrderStatus={handleOrderStatusUpdate}
           onSignOut={handleSignOut}
           onViewStore={() => navigate("shop")}
           orders={adminOrders}
@@ -649,7 +645,7 @@ export default function App() {
     <>
       <div className="page-shell">
         <nav className="navbar-header">
-          <span className="navbar-brand">A&M Sari-Sari Store</span>
+          <span className="navbar-brand">A&M Online Grocery Store</span>
           <div className="navbar-actions">
             {!session && isSupabaseConfigured ? (
               <button className="primary-button" onClick={handleSignIn} type="button">
@@ -674,11 +670,11 @@ export default function App() {
 
         <header className="hero storefront-hero">
           <div className="hero-copy">
-            <span className="eyebrow">A&M Sari-Sari Store</span>
+            <span className="eyebrow">A&M Online Grocery Store</span>
             <h1>Neighborhood essentials, ready for fast ordering.</h1>
             <p>
-              Browse daily snacks, drinks, canned goods, toiletries, and household basics
-              in a cleaner checkout flow built for quick local orders.
+              Browse groceries, snacks, drinks, canned goods, toiletries, and household basics
+              in a cleaner checkout flow built for quick online orders.
             </p>
             <div className="hero-stat-row">
               <div className="hero-stat-chip">

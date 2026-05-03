@@ -69,7 +69,7 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
       addressNote: formState.addressNote.trim(),
       deliveryWindow: formState.deliveryWindow,
       notes: formState.notes.trim(),
-      email: session?.user?.email || "customer@sarisari.local",
+      email: session?.user?.email || "customer@amgrocery.local",
       total: summary.total
     });
     setIsReviewingOrder(false);
