@@ -2,11 +2,25 @@ import { useEffect, useRef, useState } from "react";
 
 const pesoSign = "\u20b1";
 
+function ButtonIcon({ type }) {
+  const paths = {
+    trash: "M6 7h12M9 7V5h6v2m-7 3v8m4-8v8m4-8v8M8 7l1 13h6l1-13",
+    minus: "M6 12h12",
+    plus: "M12 6v12M6 12h12"
+  };
+
+  return (
+    <svg aria-hidden="true" className="button-icon" viewBox="0 0 24 24">
+      <path d={paths[type]} />
+    </svg>
+  );
+}
+
 function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
-export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity }) {
+export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpdateQuantity }) {
   const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartCardRef = useRef(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -75,7 +89,15 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
             <h2>Cart</h2>
             <p>Review quantities before placing the order.</p>
           </div>
-          <span>{totalUnits} item{totalUnits === 1 ? "" : "s"}</span>
+          <div className="cart-header-actions">
+            <span>{totalUnits} item{totalUnits === 1 ? "" : "s"}</span>
+            {cart.length > 0 ? (
+              <button className="tertiary-button icon-button-text" onClick={onClearCart} type="button">
+                <ButtonIcon type="trash" />
+                Clear
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {cart.length === 0 ? (
@@ -98,14 +120,33 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onUpdateQuantity })
                   ) : null}
                 </div>
                 <div className="quantity-control">
-                  <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">-</button>
-                  <span>{item.quantity}</span>
+                  <button aria-label={`Decrease ${item.name}`} onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} type="button">
+                    <ButtonIcon type="minus" />
+                  </button>
+                  <input
+                    aria-label={`${item.name} quantity`}
+                    className="quantity-input"
+                    inputMode="numeric"
+                    max={itemLimit}
+                    min="1"
+                    onChange={(event) => {
+                      const nextQuantity = Number.parseInt(event.target.value, 10);
+                      if (Number.isNaN(nextQuantity)) {
+                        return;
+                      }
+                      onUpdateQuantity(item.id, nextQuantity);
+                    }}
+                    onFocus={(event) => event.target.select()}
+                    type="number"
+                    value={item.quantity}
+                  />
                   <button
+                    aria-label={`Increase ${item.name}`}
                     disabled={item.quantity >= itemLimit}
                     onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                     type="button"
                   >
-                    +
+                    <ButtonIcon type="plus" />
                   </button>
                 </div>
                 <strong className="cart-line-total">{pesoSign}{(item.price * item.quantity).toFixed(2)}</strong>

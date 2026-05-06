@@ -252,16 +252,22 @@ export default function App() {
   }, [route, session, isSessionChecked]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const categoryMatch =
-        filters.category === "all" || product.category === filters.category;
-      const queryMatch =
-        !filters.query ||
-        `${product.name} ${product.description}`
-          .toLowerCase()
-          .includes(filters.query.toLowerCase());
-      return categoryMatch && queryMatch;
-    });
+    return products
+      .filter((product) => {
+        const categoryMatch =
+          filters.category === "all" || product.category === filters.category;
+        const queryMatch =
+          !filters.query ||
+          `${product.name} ${product.description}`
+            .toLowerCase()
+            .includes(filters.query.toLowerCase());
+        return categoryMatch && queryMatch;
+      })
+      .sort((firstProduct, secondProduct) => {
+        const firstIsOutOfStock = Number(firstProduct.stock_quantity ?? 0) <= 0;
+        const secondIsOutOfStock = Number(secondProduct.stock_quantity ?? 0) <= 0;
+        return Number(firstIsOutOfStock) - Number(secondIsOutOfStock);
+      });
   }, [filters, products]);
 
   const catalogItemsPerPage = 6;
@@ -347,6 +353,19 @@ export default function App() {
         })
         .filter((item) => item.quantity > 0)
     );
+  }
+
+  function clearCart() {
+    setCart([]);
+    setCartMessage("");
+  }
+
+  function scrollToCatalog() {
+    document.querySelector(".catalog-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToOrderStatus() {
+    document.querySelector(".order-status-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function repeatOrder(order) {
@@ -696,6 +715,7 @@ export default function App() {
               cart={cart}
               maxQuantity={MAX_ITEM_QUANTITY}
               summary={cartSummary}
+              onClearCart={clearCart}
               onUpdateQuantity={updateQuantity}
             />
           </div>
@@ -704,7 +724,14 @@ export default function App() {
         {error ? <div className="banner banner-error">{error}</div> : null}
         {cartMessage ? <div className="banner banner-success cart-added-banner">{cartMessage}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
-        {lastOrder ? <OrderConfirmation order={lastOrder} onRepeatOrder={repeatOrder} /> : null}
+        {lastOrder ? (
+          <OrderConfirmation
+            order={lastOrder}
+            onContinueShopping={scrollToCatalog}
+            onRepeatOrder={repeatOrder}
+            onTrackOrder={scrollToOrderStatus}
+          />
+        ) : null}
         <OrderStatusLookup
           initialOrder={lastOrder}
           onLookup={getOrderStatus}
@@ -729,6 +756,7 @@ export default function App() {
                 cart={cart}
                 maxQuantity={MAX_ITEM_QUANTITY}
                 summary={cartSummary}
+                onClearCart={clearCart}
                 onUpdateQuantity={updateQuantity}
               />
             </div>

@@ -7,6 +7,14 @@ const categoryOptions = [
 
 const pesoSign = "\u20b1";
 
+function FilterIcon() {
+  return (
+    <svg aria-hidden="true" className="filter-icon-svg" viewBox="0 0 24 24">
+      <path d="M4 6h16l-6 7v4.5l-4 2V13L4 6Z" />
+    </svg>
+  );
+}
+
 function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
@@ -86,8 +94,14 @@ export function CatalogPanel({
       <div className="catalog-filter-bar">
         <details className="mobile-filter-panel">
           <summary>
-            <span>Filter category</span>
-            <strong>{categoryOptions.find((option) => option.value === filters.category)?.label || "All items"}</strong>
+            <span className="mobile-filter-icon" aria-hidden="true">
+              <FilterIcon />
+            </span>
+            <span className="mobile-filter-copy">
+              <span>Category</span>
+              <strong>{categoryOptions.find((option) => option.value === filters.category)?.label || "All items"}</strong>
+            </span>
+            <span className="mobile-filter-chevron" aria-hidden="true" />
           </summary>
           <div className="filter-chip-row" role="tablist" aria-label="Mobile product categories">
             {categoryOptions.map((option) => (
@@ -105,20 +119,26 @@ export function CatalogPanel({
             ))}
           </div>
         </details>
-        <div className="filter-chip-row" role="tablist" aria-label="Product categories">
-          {categoryOptions.map((option) => (
-            <button
-              aria-pressed={filters.category === option.value}
-              className={`filter-chip ${filters.category === option.value ? "filter-chip-active" : ""}`}
-              key={option.value}
-              onClick={() =>
-                onFiltersChange((current) => ({ ...current, category: option.value }))
-              }
-              type="button"
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="desktop-category-filter">
+          <span className="desktop-filter-label">
+            <FilterIcon />
+            <span>Category</span>
+          </span>
+          <div className="filter-chip-row" role="tablist" aria-label="Product categories">
+            {categoryOptions.map((option) => (
+              <button
+                aria-pressed={filters.category === option.value}
+                className={`filter-chip ${filters.category === option.value ? "filter-chip-active" : ""}`}
+                key={option.value}
+                onClick={() =>
+                  onFiltersChange((current) => ({ ...current, category: option.value }))
+                }
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
         <span className="catalog-results">
           {isLoading ? "Loading..." : `${totalProducts} item${totalProducts === 1 ? "" : "s"} found`}

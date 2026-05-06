@@ -39,6 +39,7 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
   const validationErrors = getCheckoutErrors(formState);
   const isFormValid = Object.keys(validationErrors).length === 0;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const checkoutStep = isReviewingOrder ? "review" : "cart";
 
   function updateField(field, value) {
     setFormState((current) => ({ ...current, [field]: value }));
@@ -106,84 +107,104 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
         <span>{session ? "Admin signed in" : "Customer order"}</span>
       </div>
 
-      <form className="checkout-form" onSubmit={handleSubmit}>
-        <label className="field-block">
-          <span className="field-label">Customer name</span>
-          <input
-            className="text-input"
-            aria-invalid={Boolean(getVisibleError("customerName"))}
-            placeholder="Enter full name"
-            value={formState.customerName}
-            onBlur={() => markFieldTouched("customerName")}
-            onChange={(event) => updateField("customerName", event.target.value)}
-            required
-          />
-          {getVisibleError("customerName") ? <span className="field-error">{getVisibleError("customerName")}</span> : null}
-        </label>
-        <label className="field-block">
-          <span className="field-label">Mobile number</span>
-          <input
-            className="text-input"
-            aria-invalid={Boolean(getVisibleError("mobileNumber"))}
-            inputMode="numeric"
-            maxLength={11}
-            pattern="09[0-9]{9}"
-            placeholder="09XXXXXXXXX"
-            value={formState.mobileNumber}
-            onBlur={() => markFieldTouched("mobileNumber")}
-            onChange={(event) => updateField("mobileNumber", event.target.value.replace(/\D/g, "").slice(0, 11))}
-            required
-            type="tel"
-          />
-          {getVisibleError("mobileNumber") ? <span className="field-error">{getVisibleError("mobileNumber")}</span> : null}
-        </label>
-        <label className="field-block">
-          <span className="field-label">Address or pickup note</span>
-          <input
-            className="text-input"
-            aria-invalid={Boolean(getVisibleError("addressNote"))}
-            placeholder="House number, purok, street, or landmark"
-            value={formState.addressNote}
-            onBlur={() => markFieldTouched("addressNote")}
-            onChange={(event) => updateField("addressNote", event.target.value)}
-            required
-          />
-          {getVisibleError("addressNote") ? <span className="field-error">{getVisibleError("addressNote")}</span> : null}
-        </label>
-        <label className="field-block">
-          <span className="field-label">Delivery window</span>
-          <select
-            className="select-input"
-            value={formState.deliveryWindow}
-            onChange={(event) => updateField("deliveryWindow", event.target.value)}
-          >
-            <option>within 30 minutes</option>
-            <option>within 1 hour</option>
-            <option>schedule for later</option>
-          </select>
-        </label>
-        <label className="field-block">
-          <span className="field-label">Special instructions</span>
-          <textarea
-            className="text-area"
-            placeholder="Optional notes for packaging, substitutions, or delivery"
-            value={formState.notes}
-            onChange={(event) => updateField("notes", event.target.value)}
-          />
-        </label>
-        <div className="checkout-note">
-          <span className="status-pill status-confirmed">Order total</span>
-          <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
-        </div>
+      <div className="checkout-stepper" aria-label="Checkout progress">
+        <button
+          className={`checkout-step ${checkoutStep === "cart" ? "checkout-step-active" : "checkout-step-done"}`}
+          disabled={!isReviewingOrder}
+          onClick={() => setIsReviewingOrder(false)}
+          type="button"
+        >
+          <strong>1</strong>
+          Cart
+        </button>
+        <span className={`checkout-step ${checkoutStep === "review" ? "checkout-step-active" : ""}`}>
+          <strong>2</strong>
+          Review
+        </span>
+      </div>
 
-        {isReviewingOrder ? (
+      <form className="checkout-form" onSubmit={handleSubmit}>
+        {!isReviewingOrder ? (
+          <>
+            <label className="field-block">
+              <span className="field-label">Customer name</span>
+              <input
+                className="text-input"
+                aria-invalid={Boolean(getVisibleError("customerName"))}
+                placeholder="Enter full name"
+                value={formState.customerName}
+                onBlur={() => markFieldTouched("customerName")}
+                onChange={(event) => updateField("customerName", event.target.value)}
+                required
+              />
+              {getVisibleError("customerName") ? <span className="field-error">{getVisibleError("customerName")}</span> : null}
+            </label>
+            <label className="field-block">
+              <span className="field-label">Mobile number</span>
+              <input
+                className="text-input"
+                aria-invalid={Boolean(getVisibleError("mobileNumber"))}
+                inputMode="numeric"
+                maxLength={11}
+                pattern="09[0-9]{9}"
+                placeholder="09XXXXXXXXX"
+                value={formState.mobileNumber}
+                onBlur={() => markFieldTouched("mobileNumber")}
+                onChange={(event) => updateField("mobileNumber", event.target.value.replace(/\D/g, "").slice(0, 11))}
+                required
+                type="tel"
+              />
+              {getVisibleError("mobileNumber") ? <span className="field-error">{getVisibleError("mobileNumber")}</span> : null}
+            </label>
+            <label className="field-block">
+              <span className="field-label">Address or pickup note</span>
+              <input
+                className="text-input"
+                aria-invalid={Boolean(getVisibleError("addressNote"))}
+                placeholder="House number, purok, street, or landmark"
+                value={formState.addressNote}
+                onBlur={() => markFieldTouched("addressNote")}
+                onChange={(event) => updateField("addressNote", event.target.value)}
+                required
+              />
+              {getVisibleError("addressNote") ? <span className="field-error">{getVisibleError("addressNote")}</span> : null}
+            </label>
+            <label className="field-block">
+              <span className="field-label">Delivery window</span>
+              <select
+                className="select-input"
+                value={formState.deliveryWindow}
+                onChange={(event) => updateField("deliveryWindow", event.target.value)}
+              >
+                <option>within 30 minutes</option>
+                <option>within 1 hour</option>
+                <option>schedule for later</option>
+              </select>
+            </label>
+            <label className="field-block">
+              <span className="field-label">Special instructions</span>
+              <textarea
+                className="text-area"
+                placeholder="Optional notes for packaging, substitutions, or delivery"
+                value={formState.notes}
+                onChange={(event) => updateField("notes", event.target.value)}
+              />
+            </label>
+            <div className="checkout-note">
+              <span className="status-pill status-confirmed">Order total</span>
+              <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
+            </div>
+          </>
+        ) : (
           <div className="checkout-review-card" aria-live="polite">
             <div className="checkout-review-header">
               <div>
                 <span className="eyebrow">Review order</span>
                 <h3>Confirm before sending</h3>
               </div>
-              <strong>{totalItems} item{totalItems === 1 ? "" : "s"}</strong>
+              <button className="checkout-edit-button" onClick={() => setIsReviewingOrder(false)} type="button">
+                Back to edit
+              </button>
             </div>
 
             <div className="checkout-review-grid">
@@ -215,11 +236,11 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
             </div>
 
             <div className="checkout-review-total">
-              <span>Estimated total</span>
+              <span>{totalItems} item{totalItems === 1 ? "" : "s"} total</span>
               <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
             </div>
           </div>
-        ) : null}
+        )}
 
         <button className="primary-button" disabled={cart.length === 0 || isSubmitting || !isFormValid} type="submit">
           {isSubmitting
