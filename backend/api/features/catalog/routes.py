@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 
+from ..._lib.rate_limit import limiter
 from ..._lib.response import json_response
 from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 from ...data_seed import CATALOG
@@ -8,6 +9,7 @@ catalog_bp = Blueprint("catalog", __name__)
 
 
 @catalog_bp.route("/api/catalog", methods=["GET", "OPTIONS"])
+@limiter.limit("60 per minute")
 def get_catalog():
     if request.method == "OPTIONS":
         return json_response({})

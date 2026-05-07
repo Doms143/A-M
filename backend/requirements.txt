@@ -1,4 +1,5 @@
 Flask==3.1.0
+Flask-Limiter[redis]>=3.8,<4
 supabase==2.15.1
 python-dotenv==1.1.0
 gunicorn==23.0.0

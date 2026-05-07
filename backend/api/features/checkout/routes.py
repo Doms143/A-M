@@ -2,12 +2,14 @@ import os
 
 from flask import Blueprint, request
 
+from ..._lib.rate_limit import limiter
 from ..._lib.response import json_response
 
 checkout_bp = Blueprint("checkout", __name__)
 
 
 @checkout_bp.route("/api/checkout", methods=["POST", "OPTIONS"])
+@limiter.limit(os.environ.get("RATELIMIT_CHECKOUT_LIMIT", "5 per minute"))
 def checkout():
     if request.method == "OPTIONS":
         return json_response({})

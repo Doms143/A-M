@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request
 
 from ..._lib.auth import require_admin
+from ..._lib.rate_limit import limiter
 from ..._lib.response import json_response
 from ..._lib.supabase_client import get_supabase_client, is_supabase_configured
 
@@ -91,6 +92,7 @@ def _validate_product(payload):
 
 
 @admin_bp.route("/api/admin/orders", methods=["GET", "OPTIONS"])
+@limiter.limit("30 per minute")
 @require_admin
 def admin_orders(_user):
     if request.method == "OPTIONS":
@@ -111,6 +113,7 @@ def admin_orders(_user):
 
 
 @admin_bp.route("/api/admin/orders/<order_id>", methods=["PATCH", "OPTIONS"])
+@limiter.limit("20 per minute")
 @require_admin
 def update_admin_order(_user, order_id):
     if request.method == "OPTIONS":
@@ -175,6 +178,7 @@ def update_admin_order(_user, order_id):
 
 
 @admin_bp.route("/api/admin/account", methods=["GET", "OPTIONS"])
+@limiter.limit("10 per minute")
 @require_admin
 def admin_account(user):
     if request.method == "OPTIONS":
@@ -192,6 +196,8 @@ def admin_account(user):
 
 
 @admin_bp.route("/api/admin/products", methods=["GET", "POST", "OPTIONS"])
+@limiter.limit("30 per minute", methods=["GET"])
+@limiter.limit("10 per minute", methods=["POST"])
 @require_admin
 def admin_products(_user):
     if request.method == "OPTIONS":
@@ -243,6 +249,7 @@ def admin_products(_user):
 
 
 @admin_bp.route("/api/admin/products/<product_id>", methods=["DELETE", "OPTIONS"])
+@limiter.limit("5 per minute")
 @require_admin
 def delete_admin_product(_user, product_id):
     if request.method == "OPTIONS":

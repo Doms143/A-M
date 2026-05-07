@@ -1,5 +1,8 @@
+import os
+
 from flask import Blueprint, request
 
+from ..._lib.rate_limit import limiter
 from ..._lib.response import json_response
 
 from .service import build_order, persist_order
@@ -9,6 +12,8 @@ orders_bp = Blueprint("orders", __name__)
 
 
 @orders_bp.route("/api/orders", methods=["GET", "POST", "OPTIONS"])
+@limiter.limit(os.environ.get("RATELIMIT_ORDER_LOOKUP_LIMIT", "10 per minute"), methods=["GET"])
+@limiter.limit(os.environ.get("RATELIMIT_ORDER_CREATE_LIMIT", "5 per minute"), methods=["POST"])
 def orders():
     if request.method == "OPTIONS":
         return json_response({})
