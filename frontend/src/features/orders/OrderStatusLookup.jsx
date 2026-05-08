@@ -1,6 +1,33 @@
 import { useEffect, useState } from "react";
 
 const pesoSign = "\u20b1";
+const statusSteps = [
+  {
+    value: "pending",
+    label: "Pending",
+    description: "The store is reviewing your order."
+  },
+  {
+    value: "accepted",
+    label: "Accepted",
+    description: "The store confirmed the order."
+  },
+  {
+    value: "preparing",
+    label: "Preparing",
+    description: "Your items are being prepared."
+  },
+  {
+    value: "ready",
+    label: "Ready",
+    description: "Your order is ready for pickup or delivery."
+  },
+  {
+    value: "completed",
+    label: "Completed",
+    description: "The order has been finished."
+  }
+];
 
 function getOrderReference(order) {
   if (order?.reference_code) {
@@ -74,6 +101,34 @@ export function OrderStatusLookup({ initialOrder, onLookup, onRepeatOrder }) {
     }
   }
 
+  function getStatusStepClass(status) {
+    const currentIndex = statusSteps.findIndex((step) => step.value === lookupOrder?.status);
+    const stepIndex = statusSteps.findIndex((step) => step.value === status);
+
+    if (lookupOrder?.status === "cancelled") {
+      return "tracking-step";
+    }
+
+    if (stepIndex >= 0 && currentIndex >= 0 && stepIndex < currentIndex) {
+      return "tracking-step tracking-step-complete";
+    }
+
+    if (stepIndex >= 0 && currentIndex >= 0 && stepIndex === currentIndex) {
+      return "tracking-step tracking-step-current";
+    }
+
+    return "tracking-step";
+  }
+
+  function getCurrentStatusMessage() {
+    if (lookupOrder?.status === "cancelled") {
+      return "This order was cancelled. Contact the store if you need help with the order.";
+    }
+
+    const currentStep = statusSteps.find((step) => step.value === lookupOrder?.status);
+    return currentStep?.description || "Check again later for the latest order update.";
+  }
+
   return (
     <section className="card order-status-card">
       <div className="section-header compact">
@@ -130,18 +185,49 @@ export function OrderStatusLookup({ initialOrder, onLookup, onRepeatOrder }) {
 
       {lookupOrder ? (
         <>
-          <div className="order-status-result">
-            <div>
-              <span className="field-label">Status</span>
-              <strong className={`status-pill status-${lookupOrder.status}`}>{lookupOrder.status}</strong>
+          <div className="tracking-result-card">
+            <div className="tracking-result-header">
+              <div>
+                <span className="field-label">Current status</span>
+                <strong className={`status-pill status-${lookupOrder.status}`}>{lookupOrder.status}</strong>
+              </div>
+              <div className="tracking-reference">
+                <span className="field-label">Reference</span>
+                <strong>#{getOrderReference(lookupOrder)}</strong>
+              </div>
             </div>
-            <div>
-              <span className="field-label">Placed</span>
-              <strong>{formatDateTime(lookupOrder.created_at)}</strong>
+
+            <div className="tracking-flow">
+              <div className="tracking-flow-header">
+                <span className="field-label">Order flow</span>
+                <strong>{getCurrentStatusMessage()}</strong>
+              </div>
+              <div className="tracking-steps" aria-label="Order progress">
+                {statusSteps.map((status, index) => (
+                  <span className={getStatusStepClass(status.value)} key={status.value}>
+                    <span className="tracking-step-index">{index + 1}</span>
+                    <span className="tracking-step-copy">
+                      <strong>{status.label}</strong>
+                      <small>{status.description}</small>
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
-            <div>
-              <span className="field-label">Total</span>
-              <strong>{pesoSign}{Number(lookupOrder.total || 0).toFixed(2)}</strong>
+
+            <div className="order-status-result">
+              <div>
+                <span className="field-label">Placed</span>
+                <strong>{formatDateTime(lookupOrder.created_at)}</strong>
+              </div>
+              <div>
+                <span className="field-label">Contact</span>
+                <strong>{lookupOrder.mobile_number || formState.mobileNumber}</strong>
+              </div>
+              <div>
+                <span className="field-label">Total</span>
+                <strong>{pesoSign}{Number(lookupOrder.total || 0).toFixed(2)}</strong>
+              </div>
             </div>
           </div>
           {onRepeatOrder ? (

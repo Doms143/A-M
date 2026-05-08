@@ -39,9 +39,25 @@ function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return "Just now";
+  }
+
+  try {
+    return new Intl.DateTimeFormat("en-PH", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 export function OrderConfirmation({ onContinueShopping, onRepeatOrder, onTrackOrder, order }) {
   const items = order.items || [];
   const reference = getOrderReference(order);
+  const orderStatus = order.status || "pending";
 
   async function copyReference() {
     if (!navigator.clipboard) {
@@ -57,18 +73,31 @@ export function OrderConfirmation({ onContinueShopping, onRepeatOrder, onTrackOr
         <div>
           <span className="eyebrow">Order placed</span>
           <h2>Thanks, {getCustomerName(order)}.</h2>
-          <p>Reference #{reference} is now waiting for store review.</p>
+          <p>Your order is saved. Keep the reference below for tracking and store follow-up.</p>
         </div>
-        <span className={`status-pill status-${order.status || "pending"}`}>
-          {order.status || "pending"}
+        <span className={`status-pill status-${orderStatus}`}>
+          {orderStatus}
         </span>
+      </div>
+
+      <div className="receipt-panel">
+        <div className="receipt-reference">
+          <span className="field-label">Order reference</span>
+          <strong>#{reference}</strong>
+          <p>Use this reference with {order.mobile_number || "your mobile number"} to check the latest status.</p>
+        </div>
+        <div className="receipt-total">
+          <span className="field-label">Total</span>
+          <strong>{pesoSign}{Number(order.total || 0).toFixed(2)}</strong>
+          <span>{formatDateTime(order.created_at)}</span>
+        </div>
       </div>
 
       <div className="order-reference-notice">
         <div>
-          <span className="field-label">Save this reference</span>
-          <strong>#{reference}</strong>
-          <p>Use this with your mobile number to track the order. The store may contact you through the mobile number you provided.</p>
+          <span className="field-label">Next step</span>
+          <strong>Waiting for store review</strong>
+          <p>The store will review availability first, then update the order status.</p>
         </div>
         <div className="order-reference-actions">
           <button className="secondary-button" onClick={copyReference} type="button">
@@ -98,7 +127,7 @@ export function OrderConfirmation({ onContinueShopping, onRepeatOrder, onTrackOr
 
       <div className="order-confirmation-grid">
         <div className="order-detail-card">
-          <span className="field-label">Mobile number</span>
+          <span className="field-label">Contact</span>
           <strong>{order.mobile_number || "Not provided"}</strong>
         </div>
         <div className="order-detail-card">
@@ -110,8 +139,8 @@ export function OrderConfirmation({ onContinueShopping, onRepeatOrder, onTrackOr
           <strong>{order.delivery_window || "within 30 minutes"}</strong>
         </div>
         <div className="order-detail-card">
-          <span className="field-label">Total</span>
-          <strong>{pesoSign}{Number(order.total || 0).toFixed(2)}</strong>
+          <span className="field-label">Status</span>
+          <strong className={`status-pill status-${orderStatus}`}>{orderStatus}</strong>
         </div>
       </div>
 
@@ -141,7 +170,14 @@ export function OrderConfirmation({ onContinueShopping, onRepeatOrder, onTrackOr
 
       <div className="order-next-steps">
         <span className="field-label">What happens next</span>
-        <p>Keep your phone available. Your order stays pending until the store reviews it, then the status page will update as it moves to accepted, preparing, ready, or completed.</p>
+        <div className="receipt-status-flow" aria-label="Order status flow">
+          {["pending", "accepted", "preparing", "ready"].map((status, index) => (
+            <span className={index === 0 ? "receipt-status-step receipt-status-step-active" : "receipt-status-step"} key={status}>
+              {status}
+            </span>
+          ))}
+        </div>
+        <p>Keep your phone available. The status page will update as the order moves through review, preparation, and pickup or delivery readiness.</p>
       </div>
     </section>
   );

@@ -40,6 +40,13 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
   const isFormValid = Object.keys(validationErrors).length === 0;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const checkoutStep = isReviewingOrder ? "review" : "cart";
+  const primaryButtonLabel = cart.length === 0
+    ? "Add items to checkout"
+    : isSubmitting
+      ? "Processing..."
+      : isReviewingOrder
+        ? `Place order - ${pesoSign}${summary.total.toFixed(2)}`
+        : `Review order - ${pesoSign}${summary.total.toFixed(2)}`;
 
   function updateField(field, value) {
     setFormState((current) => ({ ...current, [field]: value }));
@@ -107,6 +114,14 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
         <span>{session ? "Admin signed in" : "Customer order"}</span>
       </div>
 
+      <div className="checkout-mobile-summary" aria-label="Current checkout total">
+        <div>
+          <span className="field-label">Order total</span>
+          <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
+        </div>
+        <span>{totalItems} item{totalItems === 1 ? "" : "s"}</span>
+      </div>
+
       <div className="checkout-stepper" aria-label="Checkout progress">
         <button
           className={`checkout-step ${checkoutStep === "cart" ? "checkout-step-active" : "checkout-step-done"}`}
@@ -115,7 +130,7 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
           type="button"
         >
           <strong>1</strong>
-          Cart
+          Details
         </button>
         <span className={`checkout-step ${checkoutStep === "review" ? "checkout-step-active" : ""}`}>
           <strong>2</strong>
@@ -191,7 +206,10 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
               />
             </label>
             <div className="checkout-note">
-              <span className="status-pill status-confirmed">Order total</span>
+              <div>
+                <span className="status-pill status-confirmed">Store review</span>
+                <p>Orders are checked by the store before they move from pending to accepted.</p>
+              </div>
               <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
             </div>
           </>
@@ -239,15 +257,14 @@ export function CheckoutPanel({ cart, isSubmitting, onSubmit, session, summary }
               <span>{totalItems} item{totalItems === 1 ? "" : "s"} total</span>
               <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
             </div>
+            <p className="checkout-review-note">
+              The store may contact you through the mobile number above if an item needs confirmation or substitution.
+            </p>
           </div>
         )}
 
         <button className="primary-button" disabled={cart.length === 0 || isSubmitting || !isFormValid} type="submit">
-          {isSubmitting
-            ? "Processing..."
-            : isReviewingOrder
-              ? `Confirm order - ${pesoSign}${summary.total.toFixed(2)}`
-              : `Review order - ${pesoSign}${summary.total.toFixed(2)}`}
+          {primaryButtonLabel}
         </button>
       </form>
     </section>

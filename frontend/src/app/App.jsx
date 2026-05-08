@@ -84,6 +84,7 @@ export default function App() {
   const [cartMessage, setCartMessage] = useState("");
   const [lastOrder, setLastOrder] = useState(null);
   const adminRefreshTokenRef = useRef("");
+  const orderConfirmationRef = useRef(null);
 
   function syncAdminCache(nextAccount, nextOrders, nextProducts) {
     writeAdminCache({
@@ -339,6 +340,19 @@ export default function App() {
     return () => window.clearTimeout(timerId);
   }, [cartMessage]);
 
+  useEffect(() => {
+    if (!lastOrder) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      orderConfirmationRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  }, [lastOrder]);
+
   function updateQuantity(productId, nextQuantity) {
     setCart((currentCart) =>
       currentCart
@@ -366,6 +380,10 @@ export default function App() {
 
   function scrollToOrderStatus() {
     document.querySelector(".order-status-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToCheckout() {
+    document.querySelector(".checkout-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function repeatOrder(order) {
@@ -715,6 +733,7 @@ export default function App() {
               cart={cart}
               maxQuantity={MAX_ITEM_QUANTITY}
               summary={cartSummary}
+              onCheckout={scrollToCheckout}
               onClearCart={clearCart}
               onUpdateQuantity={updateQuantity}
             />
@@ -725,12 +744,14 @@ export default function App() {
         {cartMessage ? <div className="banner banner-success cart-added-banner">{cartMessage}</div> : null}
         {checkoutMessage ? <div className="banner banner-success">{checkoutMessage}</div> : null}
         {lastOrder ? (
-          <OrderConfirmation
-            order={lastOrder}
-            onContinueShopping={scrollToCatalog}
-            onRepeatOrder={repeatOrder}
-            onTrackOrder={scrollToOrderStatus}
-          />
+          <div ref={orderConfirmationRef}>
+            <OrderConfirmation
+              order={lastOrder}
+              onContinueShopping={scrollToCatalog}
+              onRepeatOrder={repeatOrder}
+              onTrackOrder={scrollToOrderStatus}
+            />
+          </div>
         ) : null}
         <OrderStatusLookup
           initialOrder={lastOrder}
@@ -756,6 +777,7 @@ export default function App() {
                 cart={cart}
                 maxQuantity={MAX_ITEM_QUANTITY}
                 summary={cartSummary}
+                onCheckout={scrollToCheckout}
                 onClearCart={clearCart}
                 onUpdateQuantity={updateQuantity}
               />

@@ -6,7 +6,8 @@ function ButtonIcon({ type }) {
   const paths = {
     trash: "M6 7h12M9 7V5h6v2m-7 3v8m4-8v8m4-8v8M8 7l1 13h6l1-13",
     minus: "M6 12h12",
-    plus: "M12 6v12M6 12h12"
+    plus: "M12 6v12M6 12h12",
+    checkout: "M5 12h14m-6-6 6 6-6 6"
   };
 
   return (
@@ -20,7 +21,7 @@ function getPricingUnitLabel(pricingUnit) {
   return pricingUnit === "kilogram" ? "per kg" : "each";
 }
 
-export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpdateQuantity }) {
+export function CartPanel({ cart, maxQuantity = 20, summary, onCheckout, onClearCart, onUpdateQuantity }) {
   const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartCardRef = useRef(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -28,6 +29,13 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpda
 
   function openCartSheet() {
     setIsSheetOpen(true);
+  }
+
+  function handleCheckout() {
+    setIsSheetOpen(false);
+    window.requestAnimationFrame(() => {
+      onCheckout?.();
+    });
   }
 
   useEffect(() => {
@@ -164,6 +172,18 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpda
             <span>Total</span>
             <strong>{pesoSign}{summary.total.toFixed(2)}</strong>
           </div>
+          {cart.length > 0 ? (
+            <div className="cart-checkout-cta">
+              <div>
+                <span className="field-label">Ready to order</span>
+                <strong>{totalUnits} item{totalUnits === 1 ? "" : "s"} for {pesoSign}{summary.total.toFixed(2)}</strong>
+              </div>
+              <button className="primary-button" onClick={handleCheckout} type="button">
+                <ButtonIcon type="checkout" />
+                Checkout
+              </button>
+            </div>
+          ) : null}
         </div>
       </>
     );
@@ -177,7 +197,7 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpda
       >
         {renderCartContent()}
 
-        {summaryMode === "docked" ? (
+        {summaryMode === "docked" && cart.length > 0 ? (
           <div className="mobile-cart-summary mobile-cart-summary-docked">
             <div className="mobile-cart-summary-copy">
               <strong>{totalUnits} item{totalUnits === 1 ? "" : "s"}</strong>
@@ -189,7 +209,7 @@ export function CartPanel({ cart, maxQuantity = 20, summary, onClearCart, onUpda
         ) : null}
       </section>
 
-      {summaryMode === "floating" ? (
+      {summaryMode === "floating" && cart.length > 0 ? (
         <button
           aria-label={`View cart, ${totalUnits} item${totalUnits === 1 ? "" : "s"}, total ${pesoSign}${summary.total.toFixed(2)}`}
           className="mobile-cart-summary mobile-cart-summary-floating"
